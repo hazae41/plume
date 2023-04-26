@@ -106,32 +106,3 @@ export async function waitMapCloseOrError<T extends AsyncEventTarget<any>, M ext
     target.removeEventListener(type, onEvent)
   }
 }
-
-type TestEvents = {
-  lol: MessageEvent<string>
-  close: CloseEvent
-  error: ErrorEvent
-}
-
-class Test extends AsyncEventTarget<TestEvents>{
-
-}
-
-function test() {
-  {
-    const b = wait(new AsyncEventTarget<TestEvents>(), "lol")
-    const c = wait(new Test(), "lol")
-  }
-  {
-    const b = waitMap(new AsyncEventTarget<TestEvents>(), "lol", {
-      future: new Future<string>(), onEvent(event) {
-        return event.data
-      }
-    })
-    const c = waitMap(new Test(), "lol", {
-      future: new Future<string>(), onEvent(event) {
-        return event.data
-      }
-    })
-  }
-}
