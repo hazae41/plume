@@ -2,7 +2,7 @@ import { Future } from "@hazae41/future"
 import { AbortEvent } from "./abort.js"
 import { AsyncEventTarget } from "./target.js"
 
-export interface WaitMapParams<M, K extends keyof M, R> {
+export interface WaitParams<M, K extends keyof M, R> {
   onEvent: (event: M[K]) => void,
   future: Future<R>,
   signal?: AbortSignal
@@ -28,7 +28,7 @@ export async function wait<T extends AsyncEventTarget<any>, M extends T["__map"]
  * @param params 
  * @returns 
  */
-export async function waitMap<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M, R>(target: T, type: K, params: WaitMapParams<M, K, R>) {
+export async function waitMap<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M, R>(target: T, type: K, params: WaitParams<M, K, R>) {
   const { future, onEvent, signal } = params
 
   const onAbort = (event: Event) => {
@@ -73,7 +73,7 @@ export async function waitCloseOrError<T extends AsyncEventTarget<any>, M extend
  * @param params 
  * @returns 
  */
-export async function waitMapCloseOrError<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M, R>(target: T, type: K, params: WaitMapParams<M, K, R>) {
+export async function waitMapCloseOrError<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M, R>(target: T, type: K, params: WaitParams<M, K, R>) {
   const { future, onEvent, signal } = params
 
   const onAbort = (event: Event) => {
