@@ -2,9 +2,9 @@ import { Future } from "@hazae41/future"
 import { AbortEvent } from "./abort.js"
 import { AsyncEventTarget } from "./target.js"
 
-export interface WaitForParams<T, E, K extends keyof E> {
-  onEvent: (event: E[K]) => void,
-  future: Future<T>,
+export interface WaitForParams<M, K extends keyof M, R> {
+  onEvent: (event: M[K]) => void,
+  future: Future<R>,
   signal?: AbortSignal
 }
 
@@ -15,9 +15,9 @@ export interface WaitForParams<T, E, K extends keyof E> {
  * @param signal 
  * @returns 
  */
-export async function wait<E extends {}, K extends keyof E>(target: AsyncEventTarget<E>, type: K, signal?: AbortSignal) {
-  const future = new Future<E[K]>()
-  const onEvent = (event: E[K]) => future.resolve(event)
+export async function wait<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M>(target: T, type: K, signal?: AbortSignal) {
+  const future = new Future<M[K]>()
+  const onEvent = (event: M[K]) => future.resolve(event)
   return await waitMap(target, type, { future, onEvent, signal })
 }
 
@@ -28,7 +28,7 @@ export async function wait<E extends {}, K extends keyof E>(target: AsyncEventTa
  * @param params 
  * @returns 
  */
-export async function waitMap<T, E extends {}, K extends keyof E>(target: AsyncEventTarget<E>, type: K, params: WaitForParams<T, E, K>) {
+export async function waitMap<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M, R>(target: T, type: K, params: WaitForParams<M, K, R>) {
   const { future, onEvent, signal } = params
 
   const onAbort = (event: Event) => {
@@ -60,9 +60,9 @@ export type CloseAndErrorEvents = {
  * @param signal 
  * @returns 
  */
-export async function waitCloseOrError<E extends CloseAndErrorEvents, K extends keyof E>(target: AsyncEventTarget<E>, type: K, signal?: AbortSignal) {
-  const future = new Future<E[K]>()
-  const onEvent = (event: E[K]) => future.resolve(event)
+export async function waitCloseOrError<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M>(target: T, type: K, signal?: AbortSignal) {
+  const future = new Future<M[K]>()
+  const onEvent = (event: M[K]) => future.resolve(event)
   return await waitMapCloseOrError(target, type, { future, onEvent, signal })
 }
 
@@ -73,7 +73,7 @@ export async function waitCloseOrError<E extends CloseAndErrorEvents, K extends 
  * @param params 
  * @returns 
  */
-export async function waitMapCloseOrError<T, E extends CloseAndErrorEvents, K extends keyof E>(target: AsyncEventTarget<E>, type: K, params: WaitForParams<T, E, K>) {
+export async function waitMapCloseOrError<T extends AsyncEventTarget<any>, M extends T["__map"], K extends keyof M, R>(target: T, type: K, params: WaitForParams<M, K, R>) {
   const { future, onEvent, signal } = params
 
   const onAbort = (event: Event) => {
@@ -104,5 +104,34 @@ export async function waitMapCloseOrError<T, E extends CloseAndErrorEvents, K ex
     target.removeEventListener("close", onClose)
     target.removeEventListener("error", onError)
     target.removeEventListener(type, onEvent)
+  }
+}
+
+type TestEvents = {
+  lol: MessageEvent<string>
+  close: CloseEvent
+  error: ErrorEvent
+}
+
+class Test extends AsyncEventTarget<TestEvents>{
+
+}
+
+function test() {
+  {
+    const b = wait(new AsyncEventTarget<TestEvents>(), "lol")
+    const c = wait(new Test(), "lol")
+  }
+  {
+    const b = waitMap(new AsyncEventTarget<TestEvents>(), "lol", {
+      future: new Future<string>(), onEvent(event) {
+        return event.data
+      }
+    })
+    const c = waitMap(new Test(), "lol", {
+      future: new Future<string>(), onEvent(event) {
+        return event.data
+      }
+    })
   }
 }

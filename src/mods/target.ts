@@ -1,29 +1,24 @@
+import { Promiseable } from "libs/promises/promiseable.js"
+
 export type AsyncEventListener<T = unknown> =
-  (e: T) => void | Promise<void>
+  (e: T) => Promiseable<void>
 
-export type AddAsyncEventListenerOptions = {
-  once?: boolean
-  passive?: boolean
-  signal?: AbortSignal
-}
-
-type EventListenerOptions = {
-  once?: boolean
-  passive?: boolean
-  signal?: AbortSignal,
+interface InternalEventListenerOptions extends AddEventListenerOptions {
   onabort: () => void
 }
 
-export class AsyncEventTarget<E extends { [P: string]: Event }> {
-  readonly #listeners = new Map<keyof E, Map<AsyncEventListener, EventListenerOptions>>()
+export class AsyncEventTarget<M extends { [P: string]: Event }> {
+  readonly __map: M = undefined as any
+
+  readonly #listeners = new Map<keyof M, Map<AsyncEventListener, InternalEventListenerOptions>>()
 
   constructor() { }
 
-  #get<K extends keyof E>(type: K) {
+  #get<K extends keyof M>(type: K) {
     let listeners = this.#listeners.get(type)
 
     if (listeners === undefined) {
-      listeners = new Map<AsyncEventListener, EventListenerOptions>()
+      listeners = new Map<AsyncEventListener, InternalEventListenerOptions>()
       this.#listeners.set(type, listeners)
     }
 
@@ -37,35 +32,38 @@ export class AsyncEventTarget<E extends { [P: string]: Event }> {
    * @param options Options // { passive: true }
    * @returns 
    */
-  addEventListener<K extends keyof E>(type: K, listener: AsyncEventListener<E[K]> | null, options: AddAsyncEventListenerOptions = {}) {
+  addEventListener<K extends keyof M>(type: K, listener: AsyncEventListener<M[K]> | null, options: boolean | AddEventListenerOptions = {}) {
     if (!listener) return
 
     const listeners = this.#get(type)
 
     const onabort = () => this.removeEventListener(type, listener)
-    const options2 = { ...options, onabort }
 
-    listeners.set(listener as AsyncEventListener, options2)
+    const internalOptions: InternalEventListenerOptions = typeof options === "boolean"
+      ? { capture: options, onabort }
+      : { ...options, onabort }
 
-    options.signal?.addEventListener("abort", onabort, { passive: true })
+    listeners.set(listener as AsyncEventListener, internalOptions)
+
+    internalOptions.signal?.addEventListener("abort", onabort, { passive: true })
   }
 
   /**
    * Remove a listener from an event
    * @param type Event type //  "abort", "error", "message", "close"
    * @param listener Event listener // (e) => console.log("hello")
-   * @param _ Just to look like DOM's EventTarget
+   * @param options Just to look like DOM's EventTarget
    * @returns 
    */
-  removeEventListener<K extends keyof E>(type: K, listener: AsyncEventListener<E[K]> | null, _: {} = {}) {
+  removeEventListener<K extends keyof M>(type: K, listener: AsyncEventListener<M[K]> | null, options: boolean | EventListenerOptions = {}) {
     if (!listener) return
 
     const listeners = this.#get(type)
 
-    const options = listeners.get(listener as AsyncEventListener)
-    if (!options) return
+    const internalOptions = listeners.get(listener as AsyncEventListener)
+    if (!internalOptions) return
 
-    options.signal?.removeEventListener("abort", options.onabort)
+    internalOptions.signal?.removeEventListener("abort", internalOptions.onabort)
 
     listeners.delete(listener as AsyncEventListener)
 
@@ -83,7 +81,7 @@ export class AsyncEventTarget<E extends { [P: string]: Event }> {
    * @param event Event
    * @returns 
    */
-  async dispatchEvent<K extends keyof E>(event: E[K], type: K = event.type as K) {
+  async dispatchEvent<K extends keyof M>(event: M[K], type: K = event.type as K) {
     const listeners = this.#listeners.get(type)
 
     if (!listeners) return true
