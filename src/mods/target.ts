@@ -86,7 +86,7 @@ export class SuperEventTarget<M extends { [P: string | number | symbol]: [unknow
    * @param event Event
    * @returns 
    */
-  async tryDispatch<K extends keyof M>(type: K, event: M[K][0]): Promise<Result<M[K][0], M[K][1]>> {
+  async tryEmit<K extends keyof M>(type: K, event: M[K][0]): Promise<Result<M[K][0], M[K][1]>> {
     const listeners = this.#listeners.get(type)
 
     if (!listeners)

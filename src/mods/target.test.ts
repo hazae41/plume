@@ -32,7 +32,7 @@ test("AsyncEventTarget", async ({ test }) => {
     console.log(r.inner)
   })
 
-  const result = await target.tryDispatch("test", "hello")
+  const result = await target.tryEmit("test", "hello")
 
   assert(result.isOk())
 
