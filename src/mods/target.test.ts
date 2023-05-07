@@ -1,26 +1,40 @@
+import { Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
+import { Ok } from "@hazae41/result";
 import { relative, resolve } from "path";
-import { AsyncEventTarget } from "./target.js";
+import { SuperEventTarget } from "./target.js";
 
 const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)
 console.log(relative(directory, pathname.replace(".mjs", ".ts")))
 
 test("AsyncEventTarget", async ({ test }) => {
-  const target = new AsyncEventTarget<{ test: Event }>()
+  const target = new SuperEventTarget<{
+    test: ["hello", DOMException],
+    123: [123, "nooo"]
+  }>()
 
   const stack = new Array<string>()
 
-  target.addEventListener("test", async () => {
+  target.on("test", async () => {
     stack.push("first")
+    return Ok.void()
   }, { passive: true })
 
-  target.addEventListener("test", async () => {
+  target.on("test", async () => {
     stack.push("second")
+    return Ok.void()
   }, { passive: true })
 
-  const event = new Event("test")
-  await target.dispatchEvent(event, "test")
+  test("wait", async () => {
+    const r = await target.tryWaitEvent("test", (e) => new Some(e.slice(0, 4)), {})
+    assert(r.isOk())
+    console.log(r.inner)
+  })
+
+  const result = await target.tryDispatch("test", "hello")
+
+  assert(result.isOk())
 
   stack.push("done")
 
