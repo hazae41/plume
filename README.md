@@ -1,6 +1,6 @@
 # Plume
 
-DOM-like async events with both sequenced and parallel dispatching
+Typed async events with sequenced and parallel dispatching
 
 ```bash
 npm i @hazae41/plume
@@ -13,10 +13,10 @@ npm i @hazae41/plume
 ### Current features
 - 100% TypeScript and ESM
 - No external dependency
-- DOM-like syntax: addEventListener, dispatchEvent
+- Rust-like patterns
 - Type-safe event dispatching and listening
 - Sequenced and parallel dispatching
-- Helpers to wait for an event using future
+- Helpers to safely wait for an event
 
 ## Usage
 
