@@ -115,6 +115,10 @@ In this example we have an AsyncEventTarget called MySocket which has a `send()`
 
 We want to send a message with some ID and wait for a reply with the same ID, skipping replies with other ID
 
+We use `Ok` to signal to the dispatcher that the event has been successfully handled
+
+We use `Some` to signal to the waiter we want to stop listening and return something
+
 ```tsx
 import { Plume } from "@hazae41/plume"
 import { Future } from "@hazae41/future"
@@ -138,6 +142,8 @@ async function sendMessageAndWaitForReply(id: number, text: string): Promise<str
 
 Same as above but this time the event is raced with an AbortSignal, if the signal is aborted before we get a reply, it will stop listening and return an error
 
+This time, we wrap `msg.text` in an extra `Ok` to signal to the waiter that the listening has not been aborted (the signal will return `Err` if aborted)
+
 ```tsx
 import { Plume } from "@hazae41/plume"
 import { Future } from "@hazae41/future"
@@ -149,9 +155,9 @@ async function sendMessageAndWaitForReply(id: number, text: string, signal: Abor
 
   const reply = await tryWait(socket, "message", async (msg) => {
     if (msg.id === id)
-      return new Ok(new Some(msg.text)) // Return msg.text and stop listening for events
+      return new Ok(new Some(new Ok(msg.text))) // Return msg.text and stop listening for events
     return new Ok(new None()) // Continue and wait for next event
-  }, signal).unwrap()
+  }, signal).then(r => r.unwrap())
   
   return reply
 }
