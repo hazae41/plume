@@ -1,12 +1,11 @@
 import { Future } from "@hazae41/future";
-import { Option, Some } from "@hazae41/option";
+import { Option } from "@hazae41/option";
 import { Err, Ok, Result } from "@hazae41/result";
+import { Cleanable } from "libs/cleanable/cleanable.js";
 import { Promiseable } from "libs/promises/promiseable.js";
-import { AbortEvent } from "../libs/abort/abort.js";
-import { AbortError, CloseError, ErrorError } from "./errors.js";
 
-export type EventListener<T extends [unknown, unknown]> =
-  (e: T[0]) => Promiseable<Result<void, T[1]>>
+export type EventListener<T> =
+  (e: T) => Promiseable<Result<void, unknown>>
 
 export interface EventListenerOptions {
   once?: boolean;
@@ -22,7 +21,9 @@ interface InternalEventListenerOptions extends EventListenerOptions {
   off: () => void
 }
 
-export class SuperEventTarget<M extends { [P: string | number | symbol]: [unknown, unknown] }> {
+export class SuperEventTarget<M> {
+  readonly __map: M = undefined as any
+
   readonly #listeners = new Map<keyof M, Map<EventListener<any>, InternalEventListenerOptions>>()
 
   /**
@@ -86,13 +87,13 @@ export class SuperEventTarget<M extends { [P: string | number | symbol]: [unknow
    * @param event Event
    * @returns 
    */
-  async tryEmit<K extends keyof M>(type: K, event: M[K][0]): Promise<Result<M[K][0], M[K][1]>> {
+  async tryEmit<K extends keyof M>(type: K, event: M[K]): Promise<Result<M[K], unknown>> {
     const listeners = this.#listeners.get(type)
 
     if (!listeners)
       return new Ok(event)
 
-    const promises = new Array<Promise<Result<void, M[typeof type][1]>>>(listeners.size)
+    const promises = new Array<Promise<Result<void, unknown>>>(listeners.size)
 
     for (const [listener, options] of listeners) {
       if (!options.passive)
@@ -123,124 +124,29 @@ export class SuperEventTarget<M extends { [P: string | number | symbol]: [unknow
     return new Ok(event)
   }
 
-  /**
-   * Return `Ok` when the given event type happens, or `Err` when the signal is aborted
-   * @param type 
-   * @param signal 
-   * @returns 
-   */
-  async tryWaitAnyEvent<K extends keyof M>(type: K, params: { signal?: AbortSignal }) {
-    return this.tryWaitEvent(type, (e) => new Some(e), params)
-  }
+  wait<K extends keyof M, R>(type: K, callback: (e: M[K]) => Result<Option<R>, unknown>) {
+    const future = new Future<R>()
 
-  /**
-   * Call the callback when the given event type happens, return whatever the future resolves, or `Err` when the signal is aborted
-   * @param type 
-   * @param callback
-   * @param params 
-   * @returns 
-   */
-  async tryWaitEvent<K extends keyof M, T>(type: K, callback: (event: M[K][0]) => Option<T>, params: { signal?: AbortSignal }) {
-    const { signal } = params
-
-    const future = new Future<Result<T, AbortError>>()
-
-    const onAbort = (event: Event) => {
-      const abortEvent = event as AbortEvent
-      const error = new AbortError(`Aborted`, { cause: abortEvent.target.reason })
-      future.resolve(new Err(error))
-      return Ok.void()
-    }
-
-    const onEvent = async (event: M[typeof type][0]) => {
+    const onEvent = async (event: M[K]) => {
       try {
-        const option = callback(event)
-        if (option.isSome())
-          future.resolve(option.ok())
+        const result = callback(event)
+
+        if (result.isErr())
+          return result
+
+        if (result.inner.isSome())
+          future.resolve(result.inner.inner)
+
         return Ok.void()
       } catch (e: unknown) {
         future.reject(e)
-        return Ok.void()
+        return new Err(e)
       }
     }
 
-    try {
-      signal?.addEventListener("abort", onAbort, { passive: true })
-      this.on(type, onEvent, { passive: true })
+    const off = this.on(type, onEvent, { passive: true })
 
-      return await future.promise
-    } finally {
-      signal?.removeEventListener("abort", onAbort)
-      this.off(type, onEvent)
-    }
-  }
-
-  /**
-   * Return `Ok` when the given event type happens, or `Err` when a close or error event happens or when the signal is aborted
-   * @param type 
-   * @param signal 
-   * @returns 
-   */
-  async tryWaitAnyEventOrCloseOrError<K extends keyof M>(type: K, params: { signal?: AbortSignal }) {
-    return this.tryWaitEventOrCloseOrError(type, (e) => new Some(e), params)
-  }
-
-  /**
-   * Call the callback when the given event type happens, return whatever the future resolves, or `Err` when a close or error event happens or when the signal is aborted
-   * @param type 
-   * @param callback
-   * @param params 
-   * @returns 
-   */
-  async tryWaitEventOrCloseOrError<K extends keyof M, T>(type: K, callback: (event: M[K][0]) => Option<T>, params: { signal?: AbortSignal }) {
-    const { signal } = params
-
-    const future = new Future<Result<T, AbortError | CloseError | ErrorError>>()
-
-    const onAbort = (event: Event) => {
-      const abortEvent = event as AbortEvent
-      const error = new AbortError(`Aborted`, { cause: abortEvent.target.reason })
-      future.resolve(new Err(error))
-      return Ok.void()
-    }
-
-    const onClose = (event: M["close"][0]) => {
-      const error = new CloseError(`Closed`, { cause: event })
-      future.resolve(new Err(error))
-      return Ok.void()
-    }
-
-    const onError = (event: M["error"][0]) => {
-      const error = new ErrorError(`Errored`, { cause: event })
-      future.resolve(new Err(error))
-      return Ok.void()
-    }
-
-    const onEvent = async (event: M[K][0]) => {
-      try {
-        const option = callback(event)
-        if (option.isSome())
-          future.resolve(option.ok())
-        return Ok.void()
-      } catch (e: unknown) {
-        future.reject(e)
-        return Ok.void()
-      }
-    }
-
-    try {
-      signal?.addEventListener("abort", onAbort, { passive: true })
-      this.on("close", onClose, { passive: true })
-      this.on("error", onError, { passive: true })
-      this.on(type, onEvent, { passive: true })
-
-      return await future.promise
-    } finally {
-      signal?.removeEventListener("abort", onAbort)
-      this.off("close", onClose)
-      this.off("error", onError)
-      this.off(type, onEvent)
-    }
+    return new Cleanable(future.promise, off)
   }
 
 }

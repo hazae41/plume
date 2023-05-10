@@ -10,8 +10,8 @@ console.log(relative(directory, pathname.replace(".mjs", ".ts")))
 
 test("AsyncEventTarget", async ({ test }) => {
   const target = new SuperEventTarget<{
-    test: ["hello", DOMException],
-    123: [123, "nooo"]
+    test: "hello",
+    123: "nooo"
   }>()
 
   const stack = new Array<string>()
@@ -27,9 +27,11 @@ test("AsyncEventTarget", async ({ test }) => {
   }, { passive: true })
 
   test("wait", async () => {
-    const r = await target.tryWaitEvent("test", (e) => new Some(e.slice(0, 4)), {})
-    assert(r.isOk())
-    console.log(r.inner)
+    const r = await target.wait("test", e => {
+      return new Ok(new Some(e.slice(0, 4)))
+    }).await()
+
+    console.log(r)
   })
 
   const result = await target.tryEmit("test", "hello")
