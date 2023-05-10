@@ -143,12 +143,12 @@ export class SuperEventTarget<M> {
     return new Ok(event)
   }
 
-  wait<K extends keyof M, R>(type: K, callback: (e: M[K]) => Result<Option<R>, unknown>) {
+  wait<K extends keyof M, R>(type: K, callback: (e: M[K]) => Promiseable<Result<Option<R>, unknown>>) {
     const future = new Future<R>()
 
     const onEvent = async (event: M[K]) => {
       try {
-        const result = callback(event)
+        const result = await callback(event)
 
         if (result.isErr())
           return result

@@ -1,10 +1,11 @@
 import { Option } from "@hazae41/option"
 import { Result } from "@hazae41/result"
 import { Cleanable } from "libs/cleanable/cleanable.js"
+import { Promiseable } from "libs/promises/promiseable.js"
 import { AbortError, CloseError, ErrorError } from "./errors.js"
 import { SuperEventTarget } from "./target.js"
 
-export async function tryWait<M, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Result<Option<Result<R>>, unknown>, signal: AbortSignal) {
+export async function tryWait<M, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Result<R>>, unknown>>, signal: AbortSignal) {
   const abort = AbortError.wait(signal)
   const event = target.wait(type, callback)
 
@@ -16,7 +17,7 @@ export type StreamEvents = {
   error: unknown
 }
 
-export async function tryWaitStream<M extends StreamEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Result<Option<Result<R>>, unknown>, signal: AbortSignal) {
+export async function tryWaitStream<M extends StreamEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Result<R>>, unknown>>, signal: AbortSignal) {
   const abort = AbortError.wait(signal)
   const error = ErrorError.wait(target)
   const close = CloseError.wait(target)

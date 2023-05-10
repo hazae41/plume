@@ -23,33 +23,34 @@ npm i @hazae41/plume
 ### Typed async event target
 
 ```tsx
-type MyObjectEvents = {
-  close: CloseEvent,
-  error: ErrorEvent,
-  message: MessageEvent<string>
+type MyEvents = {
+  message: string,
+  close: unknown,
+  error: unknown,
 }
 
-class MyObject extends AsyncEventTarget<MyObjectEvents> {
+class MyObject {
+  readonly events = new SuperEventTarget<MyEvents>()
 
-  async close() {
+  async message(data: string) {
     /**
-     * Dispatch a CloseEvent on "close", the second argument is optional and is only for type checking
+     * Dispatch a "message" event and throw if one of the listeners returned an error
      **/
-    await this.dispatchEvent(new CloseEvent("close"), "close")
+    await this.events.tryEmit("message", data).unwrap()
   }
 
   async error(error?: unknown) {
     /**
-     * Dispatch an ErrorEvent on "error", the second argument is optional and is only for type checking
+     * Dispatch an "error" event with an Error and throw if one of the listeners returned an error
      **/
-    await this.dispatchEvent(new ErrorEvent("error", { error }), "error")
+    await this.events.tryEmit("error", new Error("MyObject errored", { cause })).unwrap()
   }
 
-  async message(data: string) {
+  async close() {
     /**
-     * Dispatch a MessageEvent on "message", the second argument is optional and is only for type checking
+     * Dispatch a "close" event with an Error and throw if one of the listeners returned an error
      **/
-    await this.dispatchEvent(new MessageEvent("message", { data }), "message")
+    await this.event.tryEmit("close", new Error("MyObject closed")).unwrap()
   }
 
 }
@@ -63,34 +64,48 @@ When using `passive: true`, the listener will be called in parallel, so it won't
 
 ```tsx
 const myObject = new MyObject()
+```
 
-/**
- * Sequenced listening using passive: false
- **/
+#### Sequenced dispatching
 
-myObject.addEventListener("message", async (e: MessageEvent<string>) => {
+Sequenced listening using `passive: false`
+
+The listeners will be called one after the other
+
+```tsx
+myObject.events.on("message", async (message: string) => {
+  await doSometing(message)
+
   /**
-   * This will be called first
+   * Return Ok if the event has been handled successfully
    **/
-  await doSometing(e.data)
+  return Ok.void()
 }, { passive: false })
 
-/**
- * Parallel listening using passive: true
- **/
+myObject.events.on("message", async (message: string) => {
+  await doSometing(message)
 
-myObject.addEventListener("message", async (e: MessageEvent<string>) => {
-  /**
-   * This will be called after, at the same time as below
-   **/
-  await doSometing(e.data)
+  return Ok.void()
+}, { passive: false })
+```
+
+#### Parallel dispatching
+
+Parallel listening using `passive: true`
+
+Both listeners will be called at the same time
+
+```tsx
+myObject.events.on("message", async (message: string) => {
+  await doSometing(message)
+
+  return Ok.void()
 }, { passive: true })
 
-myObject.addEventListener("message", async (e: MessageEvent<string>) => {
-  /**
-   * This will be called after, at the same time as above
-   **/
+myObject.events.on("message", async (message: string) => {
   await doSometing(e.data)
+
+  return Ok.void()
 }, { passive: true })
 ```
 
@@ -98,7 +113,7 @@ myObject.addEventListener("message", async (e: MessageEvent<string>) => {
 
 In this example we have an AsyncEventTarget called MySocket which has a `send()` method and a `message` event
 
-We want to send a message with some ID and wait for a reply with the same ID, and clean afterward
+We want to send a message with some ID and wait for a reply with the same ID, skipping replies with other ID
 
 ```tsx
 import { Plume } from "@hazae41/plume"
@@ -109,47 +124,35 @@ async function sendMessageAndWaitForReply(id: number, text: string): Promise<str
 
   socket.send({ id, text })
 
-  const future = new Future<string>()
+  const reply = await socket.wait("message", async (msg) => {
+    if (msg.id === id)
+      return new Ok(new Some(msg.text)) // Return msg.text and stop listening for events
+    return new Ok(new None()) // Continue and wait for next event
+  }).await()
 
-  /**
-   * Filter and map events based on the ID
-   **/
-  const onEvent = (e: MessageEvent<{ id: number, text: string }>) => {
-    if (e.data.id !== id) return
-    future.resolve(e.data.text)
-  }
-
-  try {
-    socket.addEventListener("message", onEvent)
-
-    return await future.promise /*string*/
-  } finally {
-    socket.removeEventListener("message", onEvent)
-  }
+  return reply
 }
 ```
 
 ### Waiting for an event with an abort signal
 
+Same as above but this time the event is raced with an AbortSignal, if the signal is aborted before we get a reply, it will stop listening and return an error
+
 ```tsx
 import { Plume } from "@hazae41/plume"
 import { Future } from "@hazae41/future"
 
-async function sendMessageAndWaitForReply(id: number, text: string, signal?: AbortSignal): Promise<string> {
+async function sendMessageAndWaitForReply(id: number, text: string, signal: AbortSignal): Promise<string> {
   const socket = new MySocket()
 
   socket.send({ id, text })
 
-  const future = new Future<string>()
-
-  /**
-   * Filter and map events based on the ID
-   **/
-  const onEvent = (e: MessageEvent<{ id: number, text: string }>) => {
-    if (e.data.id !== id) return
-    future.resolve(e.data.text)
-  }
-
-  return await Plume.waitMap(socket, "message", { onEvent, future, signal })  /*string*/
+  const reply = await tryWait(socket, "message", async (msg) => {
+    if (msg.id === id)
+      return new Ok(new Some(msg.text)) // Return msg.text and stop listening for events
+    return new Ok(new None()) // Continue and wait for next event
+  }, signal).unwrap()
+  
+  return reply
 }
 ```
