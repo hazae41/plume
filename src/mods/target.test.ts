@@ -9,10 +9,7 @@ const { pathname } = new URL(import.meta.url)
 console.log(relative(directory, pathname.replace(".mjs", ".ts")))
 
 test("AsyncEventTarget", async ({ test }) => {
-  const target = new SuperEventTarget<{
-    test: "hello",
-    123: "nooo"
-  }>()
+  const target = new SuperEventTarget<{ test: "hello" }>()
 
   const stack = new Array<string>()
 
