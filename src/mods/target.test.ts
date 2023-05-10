@@ -28,7 +28,7 @@ test("AsyncEventTarget", async ({ test }) => {
     const signal = AbortSignal.timeout(1000)
 
     const r = await tryWait(target, "test", e => {
-      return new Ok(new Some(new Ok(e.slice(0, 4))))
+      return new Ok(new Some(new Ok(`${e} world`)))
     }, signal).then(r => r.unwrap())
 
     console.log(r)
