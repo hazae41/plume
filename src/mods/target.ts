@@ -4,27 +4,35 @@ import { Err, Ok, Result } from "@hazae41/result";
 import { Cleanable } from "libs/cleanable/cleanable.js";
 import { Promiseable } from "libs/promises/promiseable.js";
 
-export type EventListener<T> =
+export type SuperEventListener<T> =
   (e: T) => Promiseable<Result<void, unknown>>
 
-export interface EventListenerOptions {
+export interface SuperEventListenerOptions {
   once?: boolean;
   passive?: boolean;
   signal?: AbortSignal
 }
 
-export interface EventWaitParams {
-  signal?: AbortSignal
-}
-
-interface InternalEventListenerOptions extends EventListenerOptions {
+interface InternalSuperEventListenerOptions extends SuperEventListenerOptions {
   off: () => void
 }
 
-export class SuperEventTarget<M> {
-  readonly __map: M = undefined as any
+export class EventError extends Error {
+  readonly #class = EventError
 
-  readonly #listeners = new Map<keyof M, Map<EventListener<any>, InternalEventListenerOptions>>()
+  constructor(cause: unknown) {
+    super(`Event failed`, { cause })
+  }
+
+  static new(cause: unknown) {
+    return new EventError(cause)
+  }
+
+}
+
+export class SuperEventTarget<M> {
+
+  readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, InternalSuperEventListenerOptions>>()
 
   /**
    * Add a listener to an event
@@ -33,17 +41,17 @@ export class SuperEventTarget<M> {
    * @param options Options // { passive: true }
    * @returns 
    */
-  on<K extends keyof M>(type: K, listener: EventListener<M[K]>, options: AddEventListenerOptions = {}) {
+  on<K extends keyof M>(type: K, listener: SuperEventListener<M[K]>, options: AddEventListenerOptions = {}) {
     let listeners = this.#listeners.get(type)
 
     if (listeners === undefined) {
-      listeners = new Map<EventListener<any>, InternalEventListenerOptions>()
+      listeners = new Map<SuperEventListener<any>, InternalSuperEventListenerOptions>()
       this.#listeners.set(type, listeners)
     }
 
     const off = () => this.off(type, listener)
 
-    const internalOptions: InternalEventListenerOptions = { ...options, off }
+    const internalOptions: InternalSuperEventListenerOptions = { ...options, off }
     internalOptions.signal?.addEventListener("abort", off, { passive: true })
     listeners.set(listener, internalOptions)
 
@@ -57,7 +65,7 @@ export class SuperEventTarget<M> {
    * @param options Just to look like DOM's EventTarget
    * @returns 
    */
-  off<K extends keyof M>(type: K, listener: EventListener<M[K]>) {
+  off<K extends keyof M>(type: K, listener: SuperEventListener<M[K]>) {
     const listeners = this.#listeners.get(type)
 
     if (!listeners)
@@ -87,13 +95,26 @@ export class SuperEventTarget<M> {
    * @param event Event
    * @returns 
    */
-  async tryEmit<K extends keyof M>(type: K, event: M[K]): Promise<Result<M[K], unknown>> {
+  async tryEmit<K extends keyof M>(type: K, event: M[K]): Promise<Result<M[K], EventError>> {
     const listeners = this.#listeners.get(type)
 
     if (!listeners)
       return new Ok(event)
 
-    const promises = new Array<Promise<Result<void, unknown>>>(listeners.size)
+    const promises = new Array<Promise<Result<void, unknown>>>()
+
+    for (const [listener, options] of listeners) {
+      if (options.passive)
+        continue
+      if (options.once)
+        this.off(type, listener)
+
+      const returned = await listener(event)
+
+      if (returned.isErr())
+        return returned.mapErrSync(EventError.new)
+      continue
+    }
 
     for (const [listener, options] of listeners) {
       if (!options.passive)
@@ -101,25 +122,23 @@ export class SuperEventTarget<M> {
       if (options.once)
         this.off(type, listener)
 
-      const promise = (listener as EventListener<M[typeof type]>)(event)
+      const returned = listener(event)
 
-      if (options.passive && promise instanceof Promise) {
-        promises.push(promise)
+      if (returned instanceof Promise) {
+        promises.push(returned)
         continue
       }
 
-      const result = await promise
-
-      if (result?.isErr())
-        return result
+      if (returned.isErr())
+        return returned.mapErrSync(EventError.new)
       continue
     }
 
     const results = await Promise.all(promises)
 
     for (const result of results)
-      if (result?.isErr())
-        return result
+      if (result.isErr())
+        return result.mapErrSync(EventError.new)
 
     return new Ok(event)
   }

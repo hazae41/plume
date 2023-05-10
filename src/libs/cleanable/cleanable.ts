@@ -5,7 +5,11 @@ export class Cleanable<T> {
     readonly cleanup: () => void
   ) { }
 
-  async await() {
+  /**
+   * Cleanly await `this.inner`
+   * @returns 
+   */
+  async await(): Promise<Awaited<T>> {
     try {
       return await this.inner
     } finally {
