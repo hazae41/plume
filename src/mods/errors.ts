@@ -1,7 +1,6 @@
 import { Future } from "@hazae41/future"
 import { Some } from "@hazae41/option"
 import { Err, Ok } from "@hazae41/result"
-import { AbortEvent } from "libs/abort/abort.js"
 import { Cleanable } from "libs/cleanable/cleanable.js"
 import { SuperEventTarget } from "./target.js"
 
@@ -12,8 +11,7 @@ export class AbortError extends Error {
     const future = new Future<Err<AbortError>>()
 
     const onAbort = (event: Event) => {
-      const abortEvent = event as AbortEvent
-      const error = new AbortError(`Aborted`, { cause: abortEvent })
+      const error = new AbortError(`Aborted`, { cause: event })
       future.resolve(new Err(error))
     }
 
