@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@hazae41/plume",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "DOM-like async events with both sequenced and parallel dispatching",
   "homepage": "https://github.com/hazae41/plume",
   "repository": "github:hazae41/plume",
