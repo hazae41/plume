@@ -92,14 +92,29 @@ export class SuperEventTarget<M> {
    * - Return false if the event has been cancelled
    * - Dispatch to passive listeners concurrently
    * - Return true
-   * @param event Event
-   * @returns 
+   * @param value The object to emit
+   * @returns `value`
+   * @throws `EventError`
    */
-  async tryEmit<K extends keyof M>(type: K, event: M[K]): Promise<Result<M[K], EventError>> {
+  async emit<K extends keyof M>(type: K, value: M[K]): Promise<M[K]> {
+    return await this.tryEmit(type, value).then(r => r.unwrap())
+  }
+
+  /**
+   * Dispatch an event to its listeners
+   * 
+   * - Dispatch to active listeners sequencially
+   * - Return false if the event has been cancelled
+   * - Dispatch to passive listeners concurrently
+   * - Return true
+   * @param value The object to emit
+   * @returns `Ok(value)` or `Err<EventError>`
+   */
+  async tryEmit<K extends keyof M>(type: K, value: M[K]): Promise<Result<M[K], EventError>> {
     const listeners = this.#listeners.get(type)
 
     if (!listeners)
-      return new Ok(event)
+      return new Ok(value)
 
     const promises = new Array<Promise<Result<void, unknown>>>()
 
@@ -109,7 +124,7 @@ export class SuperEventTarget<M> {
       if (options.once)
         this.off(type, listener)
 
-      const returned = await listener(event)
+      const returned = await listener(value)
 
       if (returned.isErr())
         return returned.mapErrSync(EventError.new)
@@ -122,7 +137,7 @@ export class SuperEventTarget<M> {
       if (options.once)
         this.off(type, listener)
 
-      const returned = listener(event)
+      const returned = listener(value)
 
       if (returned instanceof Promise) {
         promises.push(returned)
@@ -140,7 +155,7 @@ export class SuperEventTarget<M> {
       if (result.isErr())
         return result.mapErrSync(EventError.new)
 
-    return new Ok(event)
+    return new Ok(value)
   }
 
   wait<K extends keyof M, R>(type: K, callback: (e: M[K]) => Promiseable<Result<Option<R>, unknown>>) {
