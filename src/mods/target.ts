@@ -128,6 +128,9 @@ export class SuperEventTarget<M> {
 
       if (returned.isErr())
         return returned.mapErrSync(EventError.new)
+      else
+        returned.ignore()
+
       continue
     }
 
@@ -146,6 +149,9 @@ export class SuperEventTarget<M> {
 
       if (returned.isErr())
         return returned.mapErrSync(EventError.new)
+      else
+        returned.ignore()
+
       continue
     }
 
@@ -154,6 +160,8 @@ export class SuperEventTarget<M> {
     for (const result of results)
       if (result.isErr())
         return result.mapErrSync(EventError.new)
+      else
+        result.ignore()
 
     return new Ok(value)
   }
@@ -168,8 +176,10 @@ export class SuperEventTarget<M> {
         if (result.isErr())
           return result
 
-        if (result.inner.isSome())
-          future.resolve(result.inner.inner)
+        const option = result.get()
+
+        if (option.isSome())
+          future.resolve(option.inner)
 
         return Ok.void()
       } catch (e: unknown) {

@@ -1,6 +1,6 @@
 import { Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
-import { Ok } from "@hazae41/result";
+import { Debug, Ok } from "@hazae41/result";
 import { relative, resolve } from "path";
 import { SuperEventTarget } from "./target.js";
 import { tryWait } from "./waiters.js";
@@ -8,6 +8,8 @@ import { tryWait } from "./waiters.js";
 const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)
 console.log(relative(directory, pathname.replace(".mjs", ".ts")))
+
+Debug.debug = true
 
 test("AsyncEventTarget", async ({ test }) => {
   const target = new SuperEventTarget<{ test: "hello" }>()
@@ -39,6 +41,8 @@ test("AsyncEventTarget", async ({ test }) => {
   const result = await target.tryEmit("test", "hello")
 
   assert(result.isOk(), "Event is Ok")
+
+  result.ignore()
 
   stack.push("done")
 
