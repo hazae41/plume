@@ -55,6 +55,6 @@
   "dependencies": {
     "@hazae41/future": "^1.0.3",
     "@hazae41/option": "^1.0.9",
-    "@hazae41/result": "^1.0.26"
+    "@hazae41/result": "^1.0.33"
   }
 }

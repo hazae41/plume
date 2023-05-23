@@ -8,16 +8,15 @@ export class AbortError extends Error {
   readonly #class = AbortError
   readonly name = this.#class.name
 
-  constructor(options: ErrorOptions) {
-    super(`Aborted`, options)
+  static from(cause: unknown) {
+    return new AbortError(`Aborted`, { cause })
   }
 
   static wait(signal: AbortSignal) {
     const future = new Future<Err<AbortError>>()
 
     const onAbort = (event: Event) => {
-      const error = new AbortError({ cause: event })
-      future.resolve(new Err(error))
+      future.resolve(new Err(AbortError.from(event)))
     }
 
     signal.addEventListener("abort", onAbort, { passive: true })
@@ -32,14 +31,13 @@ export class ErrorError extends Error {
   readonly #class = ErrorError
   readonly name = this.#class.name
 
-  constructor(options: ErrorOptions) {
-    super(`Errored`, options)
+  static from(cause: unknown) {
+    return new ErrorError(`Errored`, { cause })
   }
 
   static wait<M extends { error: unknown }>(target: SuperEventTarget<M>) {
     return target.wait("error", (event) => {
-      const error = new ErrorError({ cause: event })
-
+      const error = ErrorError.from(event)
       return new Ok(new Some(new Err(error)))
     })
   }
@@ -49,14 +47,13 @@ export class CloseError extends Error {
   readonly #class = CloseError
   readonly name = this.#class.name
 
-  constructor(options: ErrorOptions) {
-    super(`Closed`, options)
+  static from(cause: unknown) {
+    return new CloseError(`Closed`, { cause })
   }
 
   static wait<M extends { close: unknown }>(target: SuperEventTarget<M>) {
     return target.wait("close", (event) => {
-      const error = new CloseError({ cause: event })
-
+      const error = CloseError.from(event)
       return new Ok(new Some(new Err(error)))
     })
   }
