@@ -179,7 +179,7 @@ export class SuperEventTarget<M> {
         const option = result.get()
 
         if (option.isSome())
-          future.resolve(option.inner)
+          future.resolve(option.get())
 
         return Ok.void()
       } catch (e: unknown) {
