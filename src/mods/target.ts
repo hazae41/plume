@@ -1,6 +1,6 @@
 import { Future } from "@hazae41/future";
 import { Option } from "@hazae41/option";
-import { Err, Ok, Result } from "@hazae41/result";
+import { Ok, Result } from "@hazae41/result";
 import { Cleanable } from "libs/cleanable/cleanable.js";
 import { Promiseable } from "libs/promises/promiseable.js";
 
@@ -33,6 +33,10 @@ export class EventError extends Error {
 export class SuperEventTarget<M> {
 
   readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, InternalSuperEventListenerOptions>>()
+
+  get listeners() {
+    return this.#listeners
+  }
 
   /**
    * Add a listener to an event
@@ -80,8 +84,9 @@ export class SuperEventTarget<M> {
 
     listeners.delete(listener)
 
-    if (!listeners.size)
+    if (listeners.size > 0)
       return
+
     this.#listeners.delete(type)
   }
 
@@ -184,7 +189,7 @@ export class SuperEventTarget<M> {
         return Ok.void()
       } catch (e: unknown) {
         future.reject(e)
-        return new Err(e)
+        throw e
       }
     }
 
