@@ -5,7 +5,7 @@ import { Promiseable } from "libs/promises/promiseable.js"
 import { AbortError, CloseError, ErrorError } from "./errors.js"
 import { SuperEventTarget } from "./target.js"
 
-export async function tryWait<M, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Ok<R>>, unknown>>, signal: AbortSignal) {
+export async function tryWaitOrSignal<M, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Ok<R>>, unknown>>, signal: AbortSignal) {
   const abort = AbortError.wait(signal)
   const event = target.wait(type, callback)
 
@@ -17,7 +17,15 @@ export type StreamEvents = {
   error: unknown
 }
 
-export async function tryWaitStream<M extends StreamEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Ok<R>>, unknown>>, signal: AbortSignal) {
+export async function tryWaitOrStream<M extends StreamEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Ok<R>>, unknown>>) {
+  const error = ErrorError.wait(target)
+  const close = CloseError.wait(target)
+  const event = target.wait(type, callback)
+
+  return await Cleanable.race<Result<R, ErrorError | CloseError>>([error, close, event])
+}
+
+export async function tryWaitOrStreamOrSignal<M extends StreamEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Ok<R>>, unknown>>, signal: AbortSignal) {
   const abort = AbortError.wait(signal)
   const error = ErrorError.wait(target)
   const close = CloseError.wait(target)

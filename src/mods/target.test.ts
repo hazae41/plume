@@ -3,7 +3,7 @@ import { assert, test } from "@hazae41/phobos";
 import { Debug, Ok } from "@hazae41/result";
 import { relative, resolve } from "path";
 import { SuperEventTarget } from "./target.js";
-import { tryWait } from "./waiters.js";
+import { tryWaitOrSignal } from "./waiters.js";
 
 const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)
@@ -29,7 +29,7 @@ test("AsyncEventTarget", async ({ test }) => {
   test("wait", async () => {
     const signal = AbortSignal.timeout(1000)
 
-    const r = await tryWait(target, "test", e => {
+    const r = await tryWaitOrSignal(target, "test", e => {
       return new Ok(new Some(new Ok(`${e} world`)))
     }, signal).then(r => r.unwrap())
 
