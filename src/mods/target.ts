@@ -1,7 +1,7 @@
+import { Cleaner } from "@hazae41/cleaner";
 import { Future } from "@hazae41/future";
 import { Option } from "@hazae41/option";
 import { Ok, Result } from "@hazae41/result";
-import { Cleanable } from "libs/cleanable/cleanable.js";
 import { Promiseable } from "libs/promises/promiseable.js";
 
 export type SuperEventListener<T> =
@@ -195,7 +195,7 @@ export class SuperEventTarget<M> {
 
     const off = this.on(type, onEvent, { passive: true })
 
-    return new Cleanable(future.promise, off)
+    return new Cleaner(future.promise, off)
   }
 
 }

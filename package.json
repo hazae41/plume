@@ -53,6 +53,7 @@
     "unit-tested"
   ],
   "dependencies": {
+    "@hazae41/cleaner": "^1.0.0",
     "@hazae41/future": "^1.0.3",
     "@hazae41/option": "^1.0.9",
     "@hazae41/result": "^1.0.34"

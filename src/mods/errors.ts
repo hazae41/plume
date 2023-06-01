@@ -1,7 +1,7 @@
+import { Cleaner } from "@hazae41/cleaner"
 import { Future } from "@hazae41/future"
 import { Some } from "@hazae41/option"
 import { Err, Ok } from "@hazae41/result"
-import { Cleanable } from "libs/cleanable/cleanable.js"
 import { SuperEventTarget } from "./target.js"
 
 export class AbortError extends Error {
@@ -22,7 +22,7 @@ export class AbortError extends Error {
     signal.addEventListener("abort", onAbort, { passive: true })
     const off = () => signal.removeEventListener("abort", onAbort)
 
-    return new Cleanable(future.promise, off)
+    return new Cleaner(future.promise, off)
   }
 
 }
