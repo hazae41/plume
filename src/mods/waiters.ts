@@ -12,7 +12,7 @@ export async function tryWaitOrSignal<M, K extends keyof M, R>(target: SuperEven
   const abort = AbortedError.wait(signal)
   const event = target.wait(type, callback)
 
-  return await Cleaner.race<Result<R, WaitError>>([abort, event])
+  return await Cleaner.race<Promise<Result<R, WaitError>>>([abort, event])
 }
 
 export type StreamEvents = {
@@ -30,7 +30,7 @@ export async function tryWaitOrStream<M extends StreamEvents, K extends keyof M,
   const close = ClosedError.wait(target)
   const event = target.wait(type, callback)
 
-  return await Cleaner.race<Result<R, ErroredError | ClosedError>>([error, close, event])
+  return await Cleaner.race<Promise<Result<R, ErroredError | ClosedError>>>([error, close, event])
 }
 
 export async function tryWaitOrStreamOrSignal<M extends StreamEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: (e: M[K]) => Promiseable<Result<Option<Ok<R>>, unknown>>, signal: AbortSignal) {
@@ -39,5 +39,5 @@ export async function tryWaitOrStreamOrSignal<M extends StreamEvents, K extends 
   const close = ClosedError.wait(target)
   const event = target.wait(type, callback)
 
-  return await Cleaner.race<Result<R, WaitStreamError>>([abort, error, close, event])
+  return await Cleaner.race<Promise<Result<R, WaitStreamError>>>([abort, error, close, event])
 }
