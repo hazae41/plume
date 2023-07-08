@@ -10,7 +10,7 @@ export type SuperEventListener<T extends (...args: any) => any> =
   (...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
 
 export type SuperEventWaiter<T extends (...args: any) => any, R> =
-  (...params: Parameters<T>) => Promiseable<Option<R>>
+  (future: Future<R>, ...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
 
 export interface SuperEventListenerOptions {
   once?: boolean;
@@ -168,14 +168,7 @@ export class SuperEventTarget<M extends Record<string, (...args: any) => any>> {
 
     const onEvent = async (...params: Parameters<M[K]>) => {
       try {
-        const returned = await callback(...params)
-
-        if (returned.isNone())
-          return returned
-
-        future.resolve(returned.get())
-
-        return new None()
+        return await callback(future, ...params)
       } catch (e: unknown) {
         future.reject(e)
         throw e

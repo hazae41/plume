@@ -1,3 +1,4 @@
+import { Future } from "@hazae41/future";
 import { None, Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
 import { Debug, Ok } from "@hazae41/result";
@@ -41,16 +42,18 @@ test("AsyncEventTarget", async ({ test, wait }) => {
   test("wait", async () => {
     const signal = AbortSignal.timeout(1000)
 
-    const first = await tryWaitOrSignal(target, "test", order => {
-      return new Some(new Ok(order))
+    const first = await tryWaitOrSignal(target, "test", (future: Future<Ok<string>>, order) => {
+      future.resolve(new Ok(order))
+      return new None()
     }, signal).then(r => r.unwrap())
 
     console.log("wait first", first)
 
     const signal2 = AbortSignal.timeout(1000)
 
-    const second = await tryWaitOrSignal(target, "test", order => {
-      return new Some(new Ok(order))
+    const second = await tryWaitOrSignal(target, "test", (future: Future<Ok<string>>, order) => {
+      future.resolve(new Ok(order))
+      return new None()
     }, signal2).then(r => r.unwrap())
 
     console.log("wait second", second)

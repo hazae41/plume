@@ -1,6 +1,6 @@
 import { Cleaner } from "@hazae41/cleaner"
 import { Future } from "@hazae41/future"
-import { Some } from "@hazae41/option"
+import { None } from "@hazae41/option"
 import { Err } from "@hazae41/result"
 import { SuperEventTarget } from "./target.js"
 
@@ -40,9 +40,10 @@ export class ErroredError extends Error {
   }
 
   static wait<M extends ErrorEvents>(target: SuperEventTarget<M>) {
-    return target.wait("error", (event) => {
+    return target.wait("error", (future: Future<Err<ErroredError>>, event) => {
       const error = ErroredError.from(event)
-      return new Some(new Err(error))
+      future.resolve(new Err(error))
+      return new None()
     })
   }
 }
@@ -60,9 +61,10 @@ export class ClosedError extends Error {
   }
 
   static wait<M extends CloseEvents>(target: SuperEventTarget<M>) {
-    return target.wait("close", (event) => {
+    return target.wait("close", (future: Future<Err<ClosedError>>, event) => {
       const error = ClosedError.from(event)
-      return new Some(new Err(error))
+      future.resolve(new Err(error))
+      return new None()
     })
   }
 }
