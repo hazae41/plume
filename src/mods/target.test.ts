@@ -11,7 +11,7 @@ console.log(relative(directory, pathname.replace(".mjs", ".ts")))
 
 Debug.debug = true
 
-test("AsyncEventTarget", async ({ test }) => {
+test("AsyncEventTarget", async ({ test, wait }) => {
   const target = new SuperEventTarget<{
     test: (order: "first" | "second") => number
   }>()
@@ -19,16 +19,17 @@ test("AsyncEventTarget", async ({ test }) => {
   const stack = new Array<string>()
 
   target.on("test", async (order) => {
+    console.log("on first", order)
+
     if (order !== "first")
       return new None()
 
-    console.log("first", order)
     stack.push(order)
     return new Some(123)
   }, { passive: true })
 
   target.on("test", async (order) => {
-    console.log("second", order)
+    console.log("on second", order)
 
     if (order !== "second")
       return new None()
@@ -44,26 +45,32 @@ test("AsyncEventTarget", async ({ test }) => {
       return new Some(new Ok(order))
     }, signal).then(r => r.unwrap())
 
-    console.log("got", first)
+    console.log("wait first", first)
+
+    const signal2 = AbortSignal.timeout(1000)
 
     const second = await tryWaitOrSignal(target, "test", order => {
       return new Some(new Ok(order))
-    }, signal).then(r => r.unwrap())
+    }, signal2).then(r => r.unwrap())
 
-    console.log("got", second)
+    console.log("wait second", second)
   })
 
-  // await new Promise(ok => setTimeout(ok, 1000))
+  await new Promise(ok => setTimeout(ok, 100))
 
   const first = await target.emit("test", ["first"])
-  console.log("returned", first)
+  console.log("emit first", first)
   assert(first.isSome(), "Event has not been handled")
 
+  await new Promise(ok => setTimeout(ok, 100))
+
   const second = await target.emit("test", ["second"])
-  console.log("returned", second)
+  console.log("emit second", second)
   assert(second.isSome(), "Event has not been handled")
 
   stack.push("done")
+
+  await wait()
 
   assert(stack.length === 3)
   assert(stack[0] === "first")
