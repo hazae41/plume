@@ -1,11 +1,16 @@
 import { Cleaner } from "@hazae41/cleaner";
 import { Future } from "@hazae41/future";
-import { Option } from "@hazae41/option";
-import { Ok, Result } from "@hazae41/result";
+import { None, Option } from "@hazae41/option";
 import { Promiseable } from "libs/promises/promiseable.js";
 
-export type SuperEventListener<T> =
-  (e: T) => Promiseable<Result<void, unknown>>
+export type SuperEventMap =
+  Record<string, (...args: any) => any>
+
+export type SuperEventListener<T extends (...args: any) => any> =
+  (...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
+
+export type SuperEventWaiter<T extends (...args: any) => any, R> =
+  (...params: Parameters<T>) => Promiseable<Option<R>>
 
 export interface SuperEventListenerOptions {
   once?: boolean;
@@ -19,6 +24,7 @@ interface InternalSuperEventListenerOptions extends SuperEventListenerOptions {
 
 export class EventError extends Error {
   readonly #class = EventError
+  readonly name = this.#class.name
 
   constructor(cause: unknown) {
     super(`Event failed`, { cause })
@@ -30,7 +36,7 @@ export class EventError extends Error {
 
 }
 
-export class SuperEventTarget<M> {
+export class SuperEventTarget<M extends Record<string, (...args: any) => any>> {
 
   readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, InternalSuperEventListenerOptions>>()
 
@@ -98,30 +104,15 @@ export class SuperEventTarget<M> {
    * - Dispatch to passive listeners concurrently
    * - Return true
    * @param value The object to emit
-   * @returns `value`
-   * @throws `EventError`
-   */
-  async emit<K extends keyof M>(type: K, value: M[K]): Promise<M[K]> {
-    return await this.tryEmit(type, value).then(r => r.unwrap())
-  }
-
-  /**
-   * Dispatch an event to its listeners
-   * 
-   * - Dispatch to active listeners sequencially
-   * - Return false if the event has been cancelled
-   * - Dispatch to passive listeners concurrently
-   * - Return true
-   * @param value The object to emit
    * @returns `Ok(value)` or `Err<EventError>`
    */
-  async tryEmit<K extends keyof M>(type: K, value: M[K]): Promise<Result<M[K], EventError>> {
-    const listeners = this.#listeners.get(type)
+  async emit<K extends keyof M>(type: K, value: Parameters<M[K]>): Promise<Option<ReturnType<M[K]>>> {
+    const listeners = this.#listeners.get(type) as Map<SuperEventListener<M[K]>, InternalSuperEventListenerOptions> | undefined
 
     if (!listeners)
-      return new Ok(value)
+      return new None()
 
-    const promises = new Array<Promise<Result<void, unknown>>>()
+    const promises = new Array<Promise<Option<ReturnType<M[K]>>>>()
 
     for (const [listener, options] of listeners) {
       if (options.passive)
@@ -129,14 +120,12 @@ export class SuperEventTarget<M> {
       if (options.once)
         this.off(type, listener)
 
-      const returned = await listener(value)
+      const returned = await listener(...value)
 
-      if (returned.isErr())
-        return returned.mapErrSync(EventError.new)
-      else
-        returned.ignore()
+      if (returned.isNone())
+        continue
 
-      continue
+      return returned
     }
 
     for (const [listener, options] of listeners) {
@@ -145,48 +134,41 @@ export class SuperEventTarget<M> {
       if (options.once)
         this.off(type, listener)
 
-      const returned = listener(value)
+      const returned = listener(...value)
 
       if (returned instanceof Promise) {
         promises.push(returned)
         continue
       }
 
-      if (returned.isErr())
-        return returned.mapErrSync(EventError.new)
-      else
-        returned.ignore()
+      if (returned.isNone())
+        continue
 
-      continue
+      return returned
     }
 
-    const results = await Promise.all(promises)
+    const returneds = await Promise.all(promises)
 
-    for (const result of results)
-      if (result.isErr())
-        return result.mapErrSync(EventError.new)
-      else
-        result.ignore()
+    for (const returned of returneds)
+      if (returned.isSome())
+        return returned
 
-    return new Ok(value)
+    return new None()
   }
 
-  wait<K extends keyof M, R>(type: K, callback: (e: M[K]) => Promiseable<Result<Option<R>, unknown>>) {
+  wait<K extends keyof M, R>(type: K, callback: SuperEventWaiter<M[K], R>) {
     const future = new Future<R>()
 
-    const onEvent = async (event: M[K]) => {
+    const onEvent = async (...params: Parameters<M[K]>) => {
       try {
-        const result = await callback(event)
+        const returned = await callback(...params)
 
-        if (result.isErr())
-          return result
+        if (returned.isNone())
+          return returned
 
-        const option = result.get()
+        future.resolve(returned.get())
 
-        if (option.isSome())
-          future.resolve(option.get())
-
-        return Ok.void()
+        return new None()
       } catch (e: unknown) {
         future.reject(e)
         throw e

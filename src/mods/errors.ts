@@ -1,7 +1,7 @@
 import { Cleaner } from "@hazae41/cleaner"
 import { Future } from "@hazae41/future"
 import { Some } from "@hazae41/option"
-import { Err, Ok } from "@hazae41/result"
+import { Err } from "@hazae41/result"
 import { SuperEventTarget } from "./target.js"
 
 export class AbortedError extends Error {
@@ -27,6 +27,10 @@ export class AbortedError extends Error {
 
 }
 
+export type ErrorEvents = {
+  error: (event: unknown) => void
+}
+
 export class ErroredError extends Error {
   readonly #class = ErroredError
   readonly name = this.#class.name
@@ -35,12 +39,16 @@ export class ErroredError extends Error {
     return new ErroredError(`Errored`, { cause })
   }
 
-  static wait<M extends { error: unknown }>(target: SuperEventTarget<M>) {
+  static wait<M extends ErrorEvents>(target: SuperEventTarget<M>) {
     return target.wait("error", (event) => {
       const error = ErroredError.from(event)
-      return new Ok(new Some(new Err(error)))
+      return new Some(new Err(error))
     })
   }
+}
+
+export type CloseEvents = {
+  close: (event: unknown) => void
 }
 
 export class ClosedError extends Error {
@@ -51,10 +59,10 @@ export class ClosedError extends Error {
     return new ClosedError(`Closed`, { cause })
   }
 
-  static wait<M extends { close: unknown }>(target: SuperEventTarget<M>) {
+  static wait<M extends CloseEvents>(target: SuperEventTarget<M>) {
     return target.wait("close", (event) => {
       const error = ClosedError.from(event)
-      return new Ok(new Some(new Err(error)))
+      return new Some(new Err(error))
     })
   }
 }
