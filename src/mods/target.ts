@@ -1,15 +1,18 @@
-import { Cleaner } from "@hazae41/cleaner";
+import { PromiseDisposer } from "@hazae41/cleaner";
 import { Future } from "@hazae41/future";
 import { None, Option } from "@hazae41/option";
 import { Promiseable } from "libs/promises/promiseable.js";
 
-export type SuperEventMap =
-  Record<string, (...args: any) => any>
+export type SuperEventDescriptor =
+  (...args: any) => any
 
-export type SuperEventListener<T extends (...args: any) => any> =
+export type SuperEventMap =
+  Record<string, SuperEventDescriptor>
+
+export type SuperEventListener<T extends SuperEventDescriptor> =
   (...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
 
-export type SuperEventWaiter<T extends (...args: any) => any, R> =
+export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
   (future: Future<R>, ...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
 
 export interface SuperEventListenerOptions {
@@ -36,7 +39,7 @@ export class EventError extends Error {
 
 }
 
-export class SuperEventTarget<M extends Record<string, (...args: any) => any>> {
+export class SuperEventTarget<M extends SuperEventMap> {
 
   readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, InternalSuperEventListenerOptions>>()
 
@@ -177,7 +180,7 @@ export class SuperEventTarget<M extends Record<string, (...args: any) => any>> {
 
     const off = this.on(type, onEvent, { passive: true })
 
-    return new Cleaner(future.promise, off)
+    return new PromiseDisposer(future.promise, off)
   }
 
 }

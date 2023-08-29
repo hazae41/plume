@@ -4,7 +4,7 @@ import { assert, test } from "@hazae41/phobos";
 import { Debug, Ok } from "@hazae41/result";
 import { relative, resolve } from "path";
 import { SuperEventTarget } from "./target.js";
-import { tryWaitOrSignal } from "./waiters.js";
+import { tryWaitOrCloseOrErrorOrSignal } from "./waiters.js";
 
 const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)
@@ -15,6 +15,8 @@ Debug.debug = true
 test("AsyncEventTarget", async ({ test, wait }) => {
   const target = new SuperEventTarget<{
     test: (order: "first" | "second") => number
+    error: (reason: unknown) => void
+    close: (reason: unknown) => void
   }>()
 
   const stack = new Array<string>()
@@ -42,7 +44,7 @@ test("AsyncEventTarget", async ({ test, wait }) => {
   test("wait", async () => {
     const signal = AbortSignal.timeout(1000)
 
-    const first = await tryWaitOrSignal(target, "test", (future: Future<Ok<string>>, order) => {
+    const first = await tryWaitOrCloseOrErrorOrSignal(target, "test", (future: Future<Ok<string>>, order) => {
       future.resolve(new Ok(order))
       return new None()
     }, signal).then(r => r.unwrap())
@@ -51,7 +53,7 @@ test("AsyncEventTarget", async ({ test, wait }) => {
 
     const signal2 = AbortSignal.timeout(1000)
 
-    const second = await tryWaitOrSignal(target, "test", (future: Future<Ok<string>>, order) => {
+    const second = await tryWaitOrCloseOrErrorOrSignal(target, "test", (future: Future<Ok<string>>, order) => {
       future.resolve(new Ok(order))
       return new None()
     }, signal2).then(r => r.unwrap())

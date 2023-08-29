@@ -1,4 +1,4 @@
-import { Cleaner } from "@hazae41/cleaner"
+import { PromiseDisposer } from "@hazae41/cleaner"
 import { Future } from "@hazae41/future"
 import { None } from "@hazae41/option"
 import { Err } from "@hazae41/result"
@@ -22,13 +22,13 @@ export class AbortedError extends Error {
     signal.addEventListener("abort", onAbort, { passive: true })
     const off = () => signal.removeEventListener("abort", onAbort)
 
-    return new Cleaner(future.promise, off)
+    return new PromiseDisposer(future.promise, off)
   }
 
 }
 
 export type ErrorEvents = {
-  error: (event: unknown) => void
+  error: (reason: unknown) => void
 }
 
 export class ErroredError extends Error {
@@ -49,7 +49,7 @@ export class ErroredError extends Error {
 }
 
 export type CloseEvents = {
-  close: (event: unknown) => void
+  close: (reason: unknown) => void
 }
 
 export class ClosedError extends Error {

@@ -1,4 +1,4 @@
-import { Cleaner } from "@hazae41/cleaner"
+import { Disposable } from "@hazae41/cleaner"
 import { Ok, Result } from "@hazae41/result"
 import { AbortedError, CloseEvents, ClosedError, ErrorEvents, ErroredError } from "./errors.js"
 import { SuperEventMap, SuperEventTarget, SuperEventWaiter } from "./target.js"
@@ -7,22 +7,22 @@ export async function tryWaitOrSignal<M extends SuperEventMap, K extends keyof M
   const abort = AbortedError.wait(signal)
   const event = target.wait(type, callback)
 
-  return await Cleaner.race<Promise<Result<R, AbortedError>>>([abort, event])
+  return await Disposable.raceSync<Result<R, AbortedError>>([abort, event])
 }
 
-export async function tryWaitOrCloseOrError<M extends CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], Ok<R>>) {
+export async function tryWaitOrCloseOrError<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], Ok<R>>) {
   const error = ErroredError.wait(target)
   const close = ClosedError.wait(target)
   const event = target.wait(type, callback)
 
-  return await Cleaner.race<Promise<Result<R, ErroredError | ClosedError>>>([error, close, event])
+  return await Disposable.raceSync<Result<R, ErroredError | ClosedError>>([error, close, event])
 }
 
-export async function tryWaitOrCloseOrErrorOrSignal<M extends CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], Ok<R>>, signal: AbortSignal) {
+export async function tryWaitOrCloseOrErrorOrSignal<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], Ok<R>>, signal: AbortSignal) {
   const abort = AbortedError.wait(signal)
   const error = ErroredError.wait(target)
   const close = ClosedError.wait(target)
   const event = target.wait(type, callback)
 
-  return await Cleaner.race<Promise<Result<R, AbortedError | ClosedError | ErroredError>>>([abort, error, close, event])
+  return await Disposable.raceSync<Result<R, AbortedError | ClosedError | ErroredError>>([abort, error, close, event])
 }
