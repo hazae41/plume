@@ -1,7 +1,7 @@
 import { Future } from "@hazae41/future";
 import { None, Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
-import { Debug, Ok } from "@hazae41/result";
+import { Ok, Result } from "@hazae41/result";
 import { relative, resolve } from "path";
 import { SuperEventTarget } from "./target.js";
 import { tryWaitOrCloseOrErrorOrSignal } from "./waiters.js";
@@ -10,7 +10,7 @@ const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)
 console.log(relative(directory, pathname.replace(".mjs", ".ts")))
 
-Debug.debug = true
+Result.debug = true
 
 test("AsyncEventTarget", async ({ test, wait }) => {
   const target = new SuperEventTarget<{
