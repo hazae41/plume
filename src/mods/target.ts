@@ -15,28 +15,8 @@ export type SuperEventListener<T extends SuperEventDescriptor> =
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
   (future: Future<R>, ...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
 
-export interface SuperEventListenerOptions {
-  once?: boolean;
-  passive?: boolean;
-  signal?: AbortSignal
-}
-
-interface InternalSuperEventListenerOptions extends SuperEventListenerOptions {
+interface InternalSuperEventListenerOptions extends AddEventListenerOptions {
   off: () => void
-}
-
-export class EventError extends Error {
-  readonly #class = EventError
-  readonly name = this.#class.name
-
-  constructor(cause: unknown) {
-    super(`Event failed`, { cause })
-  }
-
-  static new(cause: unknown) {
-    return new EventError(cause)
-  }
-
 }
 
 export class SuperEventTarget<M extends SuperEventMap> {
@@ -170,16 +150,10 @@ export class SuperEventTarget<M extends SuperEventMap> {
     const future = new Future<R>()
 
     const onEvent = async (...params: Parameters<M[K]>) => {
-      try {
-        return await callback(future, ...params)
-      } catch (e: unknown) {
-        future.reject(e)
-        throw e
-      }
+      return await callback(future, ...params)
     }
 
     const off = this.on(type, onEvent, { passive: true })
-
     return new PromiseDisposer(future.promise, off)
   }
 
