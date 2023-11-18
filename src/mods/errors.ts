@@ -12,7 +12,20 @@ export class AbortedError extends Error {
     return new AbortedError(`Aborted`, { cause })
   }
 
-  static wait(signal: AbortSignal) {
+  static waitOrThrow(signal: AbortSignal) {
+    const future = new Future<never>()
+
+    const onAbort = (event: Event) => {
+      future.reject(AbortedError.from(event))
+    }
+
+    signal.addEventListener("abort", onAbort, { passive: true })
+    const off = () => signal.removeEventListener("abort", onAbort)
+
+    return new PromiseDisposer(future.promise, off)
+  }
+
+  static tryWait(signal: AbortSignal) {
     const future = new Future<Err<AbortedError>>()
 
     const onAbort = (event: Event) => {
@@ -39,13 +52,20 @@ export class ErroredError extends Error {
     return new ErroredError(`Errored`, { cause })
   }
 
-  static wait<M extends ErrorEvents>(target: SuperEventTarget<M>) {
-    return target.wait("error", (future: Future<Err<ErroredError>>, event) => {
-      const error = ErroredError.from(event)
-      future.resolve(new Err(error))
+  static waitOrThrow<M extends ErrorEvents>(target: SuperEventTarget<M>) {
+    return target.wait("error", (future: Future<never>, event) => {
+      future.reject(ErroredError.from(event))
       return new None()
     })
   }
+
+  static tryWait<M extends ErrorEvents>(target: SuperEventTarget<M>) {
+    return target.wait("error", (future: Future<Err<ErroredError>>, event) => {
+      future.resolve(new Err(ErroredError.from(event)))
+      return new None()
+    })
+  }
+
 }
 
 export type CloseEvents = {
@@ -60,11 +80,18 @@ export class ClosedError extends Error {
     return new ClosedError(`Closed`, { cause })
   }
 
-  static wait<M extends CloseEvents>(target: SuperEventTarget<M>) {
-    return target.wait("close", (future: Future<Err<ClosedError>>, event) => {
-      const error = ClosedError.from(event)
-      future.resolve(new Err(error))
+  static waitOrThrow<M extends CloseEvents>(target: SuperEventTarget<M>) {
+    return target.wait("close", (future: Future<never>, event) => {
+      future.reject(ClosedError.from(event))
       return new None()
     })
   }
+
+  static tryWait<M extends CloseEvents>(target: SuperEventTarget<M>) {
+    return target.wait("close", (future: Future<Err<ClosedError>>, event) => {
+      future.resolve(new Err(ClosedError.from(event)))
+      return new None()
+    })
+  }
+
 }
