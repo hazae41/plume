@@ -15,6 +15,11 @@ export class AbortedError extends Error {
   static waitOrThrow(signal: AbortSignal) {
     const future = new Future<never>()
 
+    if (signal.aborted) {
+      future.reject(AbortedError.from(signal))
+      return new PromiseDisposer(future.promise, () => { })
+    }
+
     const onAbort = (event: Event) => {
       future.reject(AbortedError.from(event))
     }
@@ -27,6 +32,11 @@ export class AbortedError extends Error {
 
   static tryWait(signal: AbortSignal) {
     const future = new Future<Err<AbortedError>>()
+
+    if (signal.aborted) {
+      future.resolve(new Err(AbortedError.from(signal)))
+      return new PromiseDisposer(future.promise, () => { })
+    }
 
     const onAbort = (event: Event) => {
       future.resolve(new Err(AbortedError.from(event)))
