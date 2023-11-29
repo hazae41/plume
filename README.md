@@ -17,7 +17,7 @@ npm i @hazae41/plume
 - Type-safe event dispatching and listening
 - Event listeners can return values
 - Sequenced and parallel dispatching
-- Helpers to safely wait for an event
+- Wait for events with composition
 
 ## Usage
 
