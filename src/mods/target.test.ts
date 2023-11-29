@@ -1,3 +1,5 @@
+import "@hazae41/symbol-dispose-polyfill";
+
 import { Future } from "@hazae41/future";
 import { None, Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
