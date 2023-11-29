@@ -15,78 +15,171 @@ npm i @hazae41/plume
 - No external dependency
 - Rust-like patterns
 - Type-safe event dispatching and listening
+- Event listeners can return values
 - Sequenced and parallel dispatching
 - Helpers to safely wait for an event
 
 ## Usage
 
-### Typed async event target
+### Emitters
 
 ```tsx
+/**
+ * Events are described as functions that can accept multiple parameters and return something
+ */
 type MyEvents = {
-  message: string,
-  close: unknown,
-  error: unknown,
-}
+  /**
+   * This will handle a request and return a response
+   */
+  request: (data: string) => string,
 
+  /**
+   * This will handle a close and return nothing
+   */
+  close: (reason?: unknown) => void,
+
+  /**
+   * This will handle an error and return nothing
+   */
+  error: (reason?: unknown) => void,
+}
+```
+
+```tsx
 class MyObject {
+  /**
+   * Composition over inheritance
+   */
   readonly events = new SuperEventTarget<MyEvents>()
 
-  async message(data: string) {
-    /**
-     * Dispatch a "message" event and throw if one of the listeners returned an error
-     **/
-    await this.events.tryEmit("message", data).unwrap()
+  /**
+   * Dispatch an "error" event with a reason
+   **/
+  async onError(reason?: unknown) {
+    await this.events.emit("error", [reason])
   }
 
-  async error(error?: unknown) {
-    /**
-     * Dispatch an "error" event with an Error and throw if one of the listeners returned an error
-     **/
-    await this.events.tryEmit("error", new Error("MyObject errored", { cause })).unwrap()
+  /**
+   * Dispatch a "close" event without a reason
+   **/
+  async onClose() {
+    await this.event.emit("close", [undefined])
   }
 
-  async close() {
+  /**
+   * Dispatch a "request" event and return the returned response
+   */
+  async request(data: string): string {
+    const response = await this.events.emit("request", [data])
+
     /**
-     * Dispatch a "close" event with an Error and throw if one of the listeners returned an error
-     **/
-    await this.event.tryEmit("close", new Error("MyObject closed")).unwrap()
+     * When a listener has returned something
+     */
+    if (response.isSome())
+      return response.get()
+
+    /**
+     * When no listener has returned
+     */
+    throw new Error(`Unhandled`)
   }
 
 }
+```
+
+### Listeners
+
+```tsx
+const object = new MyObject()
+
+object.on("request", (request: string) => {
+  if (request === "hello")
+    /**
+     * Return something and skip next listeners
+     */
+    return new Some("world")
+
+  /**
+   * Unhandled by this listener
+   */
+  return new None()
+})
+
+object.on("request", (request: string) => {
+  if (request === "it")
+    /**
+     * Return something and skip next listeners
+     */
+    return new Some("works")
+
+  /**
+   * Unhandled by this listener
+   */
+  return new None()
+})
+
+object.on("request", (request: string) => {
+  if (request === "have")
+    /**
+     * Return something and skip next listeners
+     */
+    return new Some("fun")
+
+  /**
+   * Unhandled by this listener
+   */
+  return new None()
+})
 ```
 
 ### Sequenced and parallel dispatching
 
 When using `passive: false` (default), the listener will be called sequencially, so it will block other active listeners and block passive listeners
 
-When using `passive: true`, the listener will be called in parallel, so it won't block any other listener (think of Promise.all but for events)
+#### Sequenced dispatching (default)
 
-```tsx
-const myObject = new MyObject()
-```
-
-#### Sequenced dispatching
-
-Sequenced listening using `passive: false`
+You can use sequenced listening using `passive: false` (or `passive: undefined`)
 
 The listeners will be called one after the other
 
+When a listener returns something, it will skip all other listeners
+
 ```tsx
+for (const listener of listeners) {
+  const returned = await listener(...)
+
+  if (returned.isSome())
+    return returned
+
+  continue
+}
+
+return new None()
+```
+
+```tsx
+/**
+ * This listener will be called first
+ */
 myObject.events.on("message", async (message: string) => {
   await doSometing(message)
 
-  /**
-   * Return Ok if the event has been handled successfully
-   **/
-  return Ok.void()
+  return new Some(1)
 }, { passive: false })
 
+/**
+ * This listener will be skipped
+ */
 myObject.events.on("message", async (message: string) => {
-  await doSometing(message)
+  await doSometing2(message)
 
-  return Ok.void()
+  return new Some(2)
 }, { passive: false })
+
+/**
+ * Some(1)
+ */
+console.log(await myObject.emit("message", ["hello world"]))
 ```
 
 #### Parallel dispatching
@@ -95,70 +188,188 @@ Parallel listening using `passive: true`
 
 Both listeners will be called at the same time
 
+Their result will be retrieved with `Promise.all`
+
 ```tsx
+const promises = new Array<Promise<...>>()
+
+for (const listener of listeners)
+  promises.push(listener(...))
+
+const returneds = await Promise.all(promises)
+
+for (const returned of returneds)
+  if (returned.isSome())
+    return returned
+
+return new None()
+```
+
+```tsx
+/**
+ * This listener will be called first
+ */
 myObject.events.on("message", async (message: string) => {
   await doSometing(message)
 
-  return Ok.void()
+  return new Some(1)
 }, { passive: true })
 
+/**
+ * This listener will be called too
+ */
 myObject.events.on("message", async (message: string) => {
   await doSometing(e.data)
 
-  return Ok.void()
+  return new Some(2)
 }, { passive: true })
+
+/**
+ * Some(1)
+ */
+console.log(await myObject.emit("message", ["hello world"]))
 ```
 
 ### Waiting for an event
 
-In this example we have an AsyncEventTarget called MySocket which has a `send()` method and a `message` event
+In this example we have a target with a `send()` method and a `message` event
 
 We want to send a message with some ID and wait for a reply with the same ID, skipping replies with other ID
 
-We use `Ok` to signal to the dispatcher that the event has been successfully handled
-
-We use `Some` to signal to the waiter we want to stop listening and return something
+Waiting is always done using `passive: true`
 
 ```tsx
-import { Plume } from "@hazae41/plume"
 import { Future } from "@hazae41/future"
 
-async function sendMessageAndWaitForReply(id: number, text: string): Promise<string> {
+async function requestAndWait(id: number, request: string): Promise<string> {
   const socket = new MySocket()
 
-  socket.send({ id, text })
+  socket.send({ id, text: request })
 
-  const reply = await socket.wait("message", async (msg) => {
-    if (msg.id === id)
-      return new Ok(new Some(msg.text)) // Return msg.text and stop listening for events
-    return new Ok(new None()) // Continue and wait for next event
-  }).await()
+  const response = await socket.wait("message", async (future: Future<string>, message) => {
+    /**
+     * Only wait for a message with the same id
+     */
+    if (message.id === id) {
+      /**
+       * Resolve with the text
+       */
+      future.resolve(message.text)
 
-  return reply
+      /**
+       * Do not skip other listeners
+       */
+      return new None()
+    }
+
+    /**
+     * Do not skip other listeners
+     */
+    return new None()
+  })
+
+  return response
 }
 ```
 
-### Waiting for an event with an abort signal
+### Composing waiters with automatic disposal
 
-Same as above but this time the event is raced with an AbortSignal, if the signal is aborted before we get a reply, it will stop listening and return an error
+Same as above but this time the event is raced with other events in a composable way
 
-This time, we wrap `msg.text` in an extra `Ok` to signal to the waiter that the listening has not been aborted (the signal will return `Err` if aborted)
+When one event is resolved or rejected, it will stop listening to the other (it is disposed by the `using` keyword)
 
 ```tsx
-import { Plume } from "@hazae41/plume"
 import { Future } from "@hazae41/future"
 
-async function sendMessageAndWaitForReply(id: number, text: string, signal: AbortSignal): Promise<string> {
+async function requestAndWaitOrClose(id: number, request: string): Promise<string> {
   const socket = new MySocket()
 
-  socket.send({ id, text })
+  socket.send({ id, text: request })
 
-  const reply = await tryWait(socket, "message", async (msg) => {
-    if (msg.id === id)
-      return new Ok(new Some(new Ok(msg.text))) // Return msg.text and stop listening for events
-    return new Ok(new None()) // Continue and wait for next event
-  }, signal).then(r => r.unwrap())
+  /**
+   * Resolve on message
+   */
+  using event = socket.wait("message", async (future: Future<string>, message) => {
+    if (message.id === id) {
+      future.resolve(message.text)
+      return new None()
+    }
+
+    return new None()
+  })
+
+  /**
+   * Reject on close
+   */
+  using close = socket.wait("close", (future: Future<never>) => {
+    future.reject(new Error("Closed"))
+    return new None()
+  })
   
-  return reply
+  return await Promise.race([event, close])
+}
+```
+
+Plume provides some helper functions for doing this with fewer lines of code
+
+```tsx
+import { Future } from "@hazae41/future"
+
+async function requestAndWaitOrCloseOrErrorOrSignal(id: number, request: string, signal: AbortSignal): Promise<string> {
+  const socket = new MySocket()
+
+  socket.send({ id, text: request })
+
+  /**
+   * Resolve on message
+   */
+  using event = socket.wait("message", async (future: Future<string>, message) => {
+    if (message.id === id) {
+      future.resolve(message.text)
+      return new None()
+    }
+
+    return new None()
+  })
+
+  /**
+   * Reject on signal
+   */
+  using abort = Plume.AbortedError.waitOrThrow(signal)
+
+  /**
+   * Reject on error (only if the target has an "error" event)
+   */
+  using error = Plume.ErroredError.waitOrThrow(socket)
+
+  /**
+   * Reject on close (only if the target has a "close" event)
+   */
+  using close = Plume.ClosedError.waitOrThrow(socket)
+
+  return await Promise.race([event, close, error, abort])
+}
+```
+
+And it provides helpers for common error-close-signal patterns
+
+```tsx
+import { Future } from "@hazae41/future"
+
+async function requestAndWaitOrCloseOrErrorOrSignal(id: number, request: string, signal: AbortSignal): Promise<string> {
+  const socket = new MySocket()
+
+  socket.send({ id, text: request })
+
+  const response = await Plume.waitOrCloseOrErrorOrSignal(socket, "message", async (future: Future<string>, message) => {
+    if (message.id === id) {
+      future.resolve(message.text)
+      return new None()
+    }
+
+    return new None()
+  }, signal)
+
+  return response
 }
 ```

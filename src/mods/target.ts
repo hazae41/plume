@@ -149,12 +149,12 @@ export class SuperEventTarget<M extends SuperEventMap> {
   wait<K extends keyof M, R>(type: K, callback: SuperEventWaiter<M[K], R>) {
     const future = new Future<R>()
 
-    const onEvent = async (...params: Parameters<M[K]>) => {
+    const dispose = this.on(type, async (...params: Parameters<M[K]>) => {
       return await callback(future, ...params)
-    }
+    }, { passive: true })
 
-    const off = this.on(type, onEvent, { passive: true })
-    return new PromiseDisposer(future.promise, off)
+    const promise = future.promise.finally(dispose)
+    return new PromiseDisposer(promise, dispose)
   }
 
 }
