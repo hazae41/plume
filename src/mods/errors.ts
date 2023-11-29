@@ -26,8 +26,9 @@ export class AbortedError extends Error {
 
     signal.addEventListener("abort", onAbort, { passive: true })
     const dispose = () => signal.removeEventListener("abort", onAbort)
+    const promise = future.promise.finally(dispose)
 
-    return new PromiseDisposer(future.promise, dispose)
+    return new PromiseDisposer(promise, dispose)
   }
 
   static tryWait(signal: AbortSignal) {
@@ -44,8 +45,9 @@ export class AbortedError extends Error {
 
     signal.addEventListener("abort", onAbort, { passive: true })
     const dispose = () => signal.removeEventListener("abort", onAbort)
+    const promise = future.promise.finally(dispose)
 
-    return new PromiseDisposer(future.promise, dispose)
+    return new PromiseDisposer(promise, dispose)
   }
 
 }
