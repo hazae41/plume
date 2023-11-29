@@ -132,11 +132,7 @@ object.on("request", (request: string) => {
 })
 ```
 
-### Sequenced and parallel dispatching
-
-When using `passive: false` (default), the listener will be called sequencially, so it will block other active listeners and block passive listeners
-
-#### Sequenced dispatching (default)
+### Sequenced dispatching (default)
 
 You can use sequenced listening using `passive: false` (or `passive: undefined`)
 
@@ -182,7 +178,7 @@ myObject.events.on("message", async (message: string) => {
 console.log(await myObject.emit("message", ["hello world"]))
 ```
 
-#### Parallel dispatching
+### Parallel dispatching
 
 Parallel listening using `passive: true`
 
