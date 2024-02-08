@@ -153,8 +153,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
       return await callback(future, ...params)
     }, { passive: true })
 
-    const promise = future.promise.finally(dispose)
-    return new Disposer(promise, dispose)
+    return new Disposer(future.promise, dispose)
   }
 
 }
