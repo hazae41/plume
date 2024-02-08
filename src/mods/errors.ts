@@ -1,4 +1,4 @@
-import { Disposer } from "@hazae41/cleaner"
+import { Disposer } from "@hazae41/disposer"
 import { Future } from "@hazae41/future"
 import { None } from "@hazae41/option"
 import { Err } from "@hazae41/result"
