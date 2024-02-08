@@ -1,4 +1,4 @@
-import { PromiseDisposer } from "@hazae41/cleaner"
+import { Disposer } from "@hazae41/cleaner"
 import { Future } from "@hazae41/future"
 import { None } from "@hazae41/option"
 import { Err } from "@hazae41/result"
@@ -17,7 +17,7 @@ export class AbortedError extends Error {
 
     if (signal.aborted) {
       future.reject(AbortedError.from(signal))
-      return new PromiseDisposer(future.promise, () => { })
+      return new Disposer(future.promise, () => { })
     }
 
     const onAbort = (event: Event) => {
@@ -28,7 +28,7 @@ export class AbortedError extends Error {
     const dispose = () => signal.removeEventListener("abort", onAbort)
     const promise = future.promise.finally(dispose)
 
-    return new PromiseDisposer(promise, dispose)
+    return new Disposer(promise, dispose)
   }
 
   static tryWait(signal: AbortSignal) {
@@ -36,7 +36,7 @@ export class AbortedError extends Error {
 
     if (signal.aborted) {
       future.resolve(new Err(AbortedError.from(signal)))
-      return new PromiseDisposer(future.promise, () => { })
+      return new Disposer(future.promise, () => { })
     }
 
     const onAbort = (event: Event) => {
@@ -47,7 +47,7 @@ export class AbortedError extends Error {
     const dispose = () => signal.removeEventListener("abort", onAbort)
     const promise = future.promise.finally(dispose)
 
-    return new PromiseDisposer(promise, dispose)
+    return new Disposer(promise, dispose)
   }
 
 }

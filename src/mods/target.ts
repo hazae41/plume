@@ -1,4 +1,4 @@
-import { PromiseDisposer } from "@hazae41/cleaner";
+import { Disposer } from "@hazae41/cleaner";
 import { Future } from "@hazae41/future";
 import { None, Option } from "@hazae41/option";
 import { Promiseable } from "libs/promises/promiseable.js";
@@ -154,7 +154,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
     }, { passive: true })
 
     const promise = future.promise.finally(dispose)
-    return new PromiseDisposer(promise, dispose)
+    return new Disposer(promise, dispose)
   }
 
 }
