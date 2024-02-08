@@ -22,7 +22,7 @@
     "prepare": "npm run build"
   },
   "dependencies": {
-    "@hazae41/cleaner": "^2.0.8",
+    "@hazae41/cleaner": "^2.0.9",
     "@hazae41/future": "^1.0.3",
     "@hazae41/option": "^1.0.27",
     "@hazae41/result": "^1.1.16"

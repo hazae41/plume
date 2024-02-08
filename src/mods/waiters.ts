@@ -6,14 +6,14 @@ export async function waitOrSignal<M extends SuperEventMap, K extends keyof M, R
   using abort = AbortedError.waitOrThrow(signal)
   using event = target.wait(type, callback)
 
-  return await Promise.race([abort, event])
+  return await Promise.race([abort.get(), event.get()])
 }
 
 export async function tryWaitOrSignal<M extends SuperEventMap, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], Ok<R>>, signal: AbortSignal): Promise<Result<R, Error>> {
   using abort = AbortedError.tryWait(signal)
   using event = target.wait(type, callback)
 
-  return await Promise.race([abort, event])
+  return await Promise.race([abort.get(), event.get()])
 }
 
 export async function waitOrCloseOrError<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], R>): Promise<R> {
@@ -21,7 +21,7 @@ export async function waitOrCloseOrError<M extends SuperEventMap & CloseEvents &
   using close = ClosedError.waitOrThrow(target)
   using event = target.wait(type, callback)
 
-  return await Promise.race([error, close, event])
+  return await Promise.race([error.get(), close.get(), event.get()])
 }
 
 export async function tryWaitOrCloseOrError<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], Ok<R>>): Promise<Result<R, Error>> {
@@ -29,7 +29,7 @@ export async function tryWaitOrCloseOrError<M extends SuperEventMap & CloseEvent
   using close = ClosedError.tryWait(target)
   using event = target.wait(type, callback)
 
-  return await Promise.race([error, close, event])
+  return await Promise.race([error.get(), close.get(), event.get()])
 }
 
 export async function waitOrCloseOrErrorOrSignal<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], R>, signal: AbortSignal): Promise<R> {
@@ -38,7 +38,7 @@ export async function waitOrCloseOrErrorOrSignal<M extends SuperEventMap & Close
   using close = ClosedError.waitOrThrow(target)
   using event = target.wait(type, callback)
 
-  return await Promise.race([abort, error, close, event])
+  return await Promise.race([abort.get(), error.get(), close.get(), event.get()])
 }
 
 export async function tryWaitOrCloseOrErrorOrSignal<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], Ok<R>>, signal: AbortSignal): Promise<Result<R, Error>> {
@@ -47,5 +47,5 @@ export async function tryWaitOrCloseOrErrorOrSignal<M extends SuperEventMap & Cl
   using close = ClosedError.tryWait(target)
   using event = target.wait(type, callback)
 
-  return await Promise.race([abort, error, close, event])
+  return await Promise.race([abort.get(), error.get(), close.get(), event.get()])
 }
