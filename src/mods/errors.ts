@@ -55,7 +55,7 @@ export class ErroredError extends Error {
 }
 
 export type ErrorEvents = {
-  readonly error: (reason: unknown) => void
+  error: (reason: unknown) => void
 }
 
 export namespace ErrorEvents {
@@ -84,7 +84,7 @@ export class ClosedError extends Error {
 }
 
 export type CloseEvents = {
-  readonly close: (reason: unknown) => void
+  close: (reason: unknown) => void
 }
 
 export namespace CloseEvents {
