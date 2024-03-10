@@ -65,13 +65,13 @@ test("AsyncEventTarget", async ({ test, wait }) => {
 
   await new Promise(ok => setTimeout(ok, 100))
 
-  const first = await target.emit("test", ["first"])
+  const first = await target.emit("test", "first")
   console.log("emit first", first)
   assert(first.isSome(), "Event has not been handled")
 
   await new Promise(ok => setTimeout(ok, 100))
 
-  const second = await target.emit("test", ["second"])
+  const second = await target.emit("test", "second")
   console.log("emit second", second)
   assert(second.isSome(), "Event has not been handled")
 

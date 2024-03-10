@@ -15,10 +15,10 @@ export type SuperEventMap =
   Record<string, SuperEventDescriptor>
 
 export type SuperEventListener<T extends SuperEventDescriptor> =
-  (...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
+  (...params: Parameters2<T>) => Promiseable<Option<ReturnType<T>>>
 
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
-  (future: Future<R>, ...params: Parameters<T>) => Promiseable<Option<ReturnType<T>>>
+  (future: Future<R>, ...params: Parameters2<T>) => Promiseable<Option<ReturnType<T>>>
 
 interface InternalSuperEventListenerOptions extends AddEventListenerOptions {
   off: () => void
