@@ -55,14 +55,14 @@ export class ErroredError extends Error {
 }
 
 export type ErrorEvents = {
-  error: (reason: unknown) => void
+  error: (reason?: unknown) => void
 }
 
 export namespace ErrorEvents {
 
   export function waitOrThrow<M extends ErrorEvents>(target: SuperEventTarget<M>) {
-    return target.wait("error", (future: Future<never>, event) => {
-      future.reject(ErroredError.from(event))
+    return target.wait("error", (future: Future<never>, ...[reason]) => {
+      future.reject(ErroredError.from(reason))
       return new None()
     })
   }
@@ -84,14 +84,14 @@ export class ClosedError extends Error {
 }
 
 export type CloseEvents = {
-  close: (reason: unknown) => void
+  close: (reason?: unknown) => void
 }
 
 export namespace CloseEvents {
 
   export function waitOrThrow<M extends CloseEvents>(target: SuperEventTarget<M>) {
-    return target.wait("close", (future: Future<never>, event) => {
-      future.reject(ClosedError.from(event))
+    return target.wait("close", (future: Future<never>, ...[reason]) => {
+      future.reject(ClosedError.from(reason))
       return new None()
     })
   }
