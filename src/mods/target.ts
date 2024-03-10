@@ -3,6 +3,11 @@ import { Future } from "@hazae41/future";
 import { None, Option } from "@hazae41/option";
 import { Promiseable } from "libs/promises/promiseable.js";
 
+/**
+ * Like `Parameters<T>` but fixed
+ */
+type Parameters2<T extends (...args: any) => any> = (T extends (...args: infer P) => any ? [P] : never)[0]
+
 export type SuperEventDescriptor =
   (...args: any) => any
 
@@ -87,10 +92,10 @@ export class SuperEventTarget<M extends SuperEventMap> {
    * - Dispatch to passive listeners concurrently
    * - Return if one of the listeners returned something
    * - Return nothing
-   * @param value The object to emit
+   * @param params The object to emit
    * @returns `Some` if the event 
    */
-  async emit<K extends keyof M>(type: K, value: Parameters<M[K]>): Promise<Option<ReturnType<M[K]>>> {
+  async emit<K extends keyof M>(type: K, ...params: Parameters2<M[K]>): Promise<Option<ReturnType<M[K]>>> {
     const listeners = this.#listeners.get(type) as Map<SuperEventListener<M[K]>, InternalSuperEventListenerOptions> | undefined
 
     if (!listeners)
@@ -104,7 +109,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
       if (options.once)
         this.off(type, listener)
 
-      const returned = await listener(...value)
+      const returned = await listener(...params)
 
       if (returned.isNone())
         continue
@@ -118,7 +123,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
       if (options.once)
         this.off(type, listener)
 
-      const returned = listener(...value)
+      const returned = listener(...params)
 
       if (returned instanceof Promise) {
         promises.push(returned)
@@ -149,7 +154,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
   wait<K extends keyof M, R>(type: K, callback: SuperEventWaiter<M[K], R>) {
     const future = new Future<R>()
 
-    const dispose = this.on(type, async (...params: Parameters<M[K]>) => {
+    const dispose = this.on(type, async (...params: Parameters2<M[K]>) => {
       return await callback(future, ...params)
     }, { passive: true })
 
