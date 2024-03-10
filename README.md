@@ -56,21 +56,21 @@ class MyObject {
    * Dispatch an "error" event with a reason
    **/
   async onError(reason?: unknown) {
-    await this.events.emit("error", [reason])
+    await this.events.emit("error", reason)
   }
 
   /**
    * Dispatch a "close" event without a reason
    **/
   async onClose() {
-    await this.event.emit("close", [undefined])
+    await this.event.emit("close")
   }
 
   /**
    * Dispatch a "request" event and return the returned response
    */
   async request(data: string): string {
-    const response = await this.events.emit("request", [data])
+    const response = await this.events.emit("request", data)
 
     /**
      * When a listener has returned something
@@ -175,7 +175,7 @@ myObject.events.on("message", async (message: string) => {
 /**
  * Some(1)
  */
-console.log(await myObject.emit("message", ["hello world"]))
+console.log(await myObject.emit("message", "hello world"))
 ```
 
 ### Parallel dispatching
@@ -223,7 +223,7 @@ myObject.events.on("message", async (message: string) => {
 /**
  * Some(1)
  */
-console.log(await myObject.emit("message", ["hello world"]))
+console.log(await myObject.emit("message", "hello world"))
 ```
 
 ### Waiting for an event
