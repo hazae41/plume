@@ -33,12 +33,12 @@
     "@hazae41/rimraf": "^1.0.1",
     "@hazae41/symbol-dispose-polyfill": "^1.0.2",
     "@rollup/plugin-typescript": "^11.1.6",
-    "@types/node": "^20.11.25",
-    "rollup": "^4.12.1",
+    "@types/node": "^20.11.30",
+    "rollup": "^4.13.1",
     "rollup-plugin-dts": "^6.1.0",
-    "rollup-plugin-node-externals": "^7.0.1",
+    "rollup-plugin-node-externals": "^7.1.1",
     "tslib": "^2.6.2",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.3"
   },
   "exports": {
     ".": {
