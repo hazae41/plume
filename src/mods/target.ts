@@ -1,7 +1,7 @@
 import { Disposer } from "@hazae41/disposer";
 import { Future } from "@hazae41/future";
 import { None, Option } from "@hazae41/option";
-import { Awaitable } from "libs/promises/promiseable.js";
+import { Awaitable } from "libs/promises/index.js";
 
 /**
  * Like `Parameters<T>` but fixed
