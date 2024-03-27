@@ -1,4 +1,3 @@
-import { Disposer } from "@hazae41/disposer"
 import { Future } from "@hazae41/future"
 import { None } from "@hazae41/option"
 import { SuperEventTarget } from "./target.js"
@@ -13,29 +12,6 @@ export class AbortedError extends Error {
 
   static from(cause: unknown) {
     return new AbortedError({ cause })
-  }
-
-}
-
-export namespace AbortSignals {
-
-  export function waitOrThrow(signal: AbortSignal) {
-    const future = new Future<never>()
-
-    if (signal.aborted) {
-      future.reject(AbortedError.from(signal))
-      return new Disposer(future.promise, () => { })
-    }
-
-    const onAbort = (event: Event) => {
-      future.reject(AbortedError.from(event))
-    }
-
-    signal.addEventListener("abort", onAbort, { passive: true })
-    const dispose = () => signal.removeEventListener("abort", onAbort)
-    const promise = future.promise.finally(dispose)
-
-    return new Disposer(promise, dispose)
   }
 
 }
