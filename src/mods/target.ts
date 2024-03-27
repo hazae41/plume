@@ -1,7 +1,7 @@
 import { Disposer } from "@hazae41/disposer";
 import { Future } from "@hazae41/future";
 import { None, Option } from "@hazae41/option";
-import { Promiseable } from "libs/promises/promiseable.js";
+import { Awaitable } from "libs/promises/promiseable.js";
 
 /**
  * Like `Parameters<T>` but fixed
@@ -15,10 +15,10 @@ export type SuperEventMap =
   Record<string, SuperEventDescriptor>
 
 export type SuperEventListener<T extends SuperEventDescriptor> =
-  (...params: Parameters2<T>) => Promiseable<Option<ReturnType<T>>>
+  (...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>>>
 
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
-  (future: Future<R>, ...params: Parameters2<T>) => Promiseable<Option<ReturnType<T>>>
+  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>>>
 
 interface InternalSuperEventListenerOptions extends AddEventListenerOptions {
   off: () => void
