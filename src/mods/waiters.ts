@@ -1,26 +1,19 @@
 import { Signals } from "@hazae41/signals"
-import { CloseEvents, ErrorEvents } from "./errors.js"
+import { CloseEvents, rejectOnClose } from "./closed.js"
+import { ErrorEvents, rejectOnError } from "./errored.js"
 import { SuperEventMap, SuperEventTarget, SuperEventWaiter } from "./target.js"
 
-export async function waitOrSignal<M extends SuperEventMap, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], R>, signal: AbortSignal): Promise<R> {
+export async function waitOrThrow<M extends SuperEventMap, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], R>, signal = new AbortController().signal): Promise<R> {
   using abort = Signals.rejectOnAbort(signal)
   using event = target.wait(type, callback)
 
   return await Promise.race([abort.get(), event.get()])
 }
 
-export async function waitOrCloseOrError<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], R>): Promise<R> {
-  using error = ErrorEvents.waitOrThrow(target)
-  using close = CloseEvents.waitOrThrow(target)
-  using event = target.wait(type, callback)
-
-  return await Promise.race([error.get(), close.get(), event.get()])
-}
-
-export async function waitOrCloseOrErrorOrSignal<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], R>, signal: AbortSignal): Promise<R> {
+export async function waitWithCloseAndErrorOrThrow<M extends SuperEventMap & CloseEvents & ErrorEvents, K extends keyof M, R>(target: SuperEventTarget<M>, type: K, callback: SuperEventWaiter<M[K], R>, signal = new AbortController().signal): Promise<R> {
   using abort = Signals.rejectOnAbort(signal)
-  using error = ErrorEvents.waitOrThrow(target)
-  using close = CloseEvents.waitOrThrow(target)
+  using error = rejectOnError(target)
+  using close = rejectOnClose(target)
   using event = target.wait(type, callback)
 
   return await Promise.race([abort.get(), error.get(), close.get(), event.get()])

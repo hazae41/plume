@@ -3,16 +3,13 @@ import "@hazae41/symbol-dispose-polyfill";
 import { Future } from "@hazae41/future";
 import { None, Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
-import { Result } from "@hazae41/result";
 import { relative, resolve } from "path";
 import { SuperEventTarget } from "./target.js";
-import { waitOrCloseOrErrorOrSignal } from "./waiters.js";
+import { waitWithCloseAndErrorOrThrow } from "./waiters.js";
 
 const directory = resolve("./dist/test/")
 const { pathname } = new URL(import.meta.url)
 console.log(relative(directory, pathname.replace(".mjs", ".ts")))
-
-Result.debug = true
 
 test("AsyncEventTarget", async ({ test, wait }) => {
   const target = new SuperEventTarget<{
@@ -46,7 +43,7 @@ test("AsyncEventTarget", async ({ test, wait }) => {
   test("wait", async () => {
     const signal = AbortSignal.timeout(1000)
 
-    const first = await waitOrCloseOrErrorOrSignal(target, "test", (future: Future<string>, order) => {
+    const first = await waitWithCloseAndErrorOrThrow(target, "test", (future: Future<string>, order) => {
       future.resolve(order)
       return new None()
     }, signal)
@@ -55,7 +52,7 @@ test("AsyncEventTarget", async ({ test, wait }) => {
 
     const signal2 = AbortSignal.timeout(1000)
 
-    const second = await waitOrCloseOrErrorOrSignal(target, "test", (future: Future<string>, order) => {
+    const second = await waitWithCloseAndErrorOrThrow(target, "test", (future: Future<string>, order) => {
       future.resolve(order)
       return new None()
     }, signal2)

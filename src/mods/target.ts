@@ -15,10 +15,10 @@ export type SuperEventMap =
   Record<string, SuperEventDescriptor>
 
 export type SuperEventListener<T extends SuperEventDescriptor> =
-  (...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>>>
+  (...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>> | void>
 
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
-  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>>>
+  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>> | void>
 
 interface InternalSuperEventListenerOptions extends AddEventListenerOptions {
   off: () => void
@@ -101,7 +101,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
     if (!listeners)
       return new None()
 
-    const promises = new Array<Promise<Option<ReturnType<M[K]>>>>()
+    const promises = new Array<Promise<Option<ReturnType<M[K]>> | void>>()
 
     for (const [listener, options] of listeners) {
       if (options.passive)
@@ -110,6 +110,9 @@ export class SuperEventTarget<M extends SuperEventMap> {
         this.off(type, listener)
 
       const returned = await listener(...params)
+
+      if (returned == null)
+        continue
 
       if (returned.isNone())
         continue
@@ -123,24 +126,24 @@ export class SuperEventTarget<M extends SuperEventMap> {
       if (options.once)
         this.off(type, listener)
 
-      const returned = listener(...params)
+      const promise = Promise.resolve().then(() => listener(...params))
 
-      if (returned instanceof Promise) {
-        promises.push(returned)
+      promises.push(promise)
+
+      continue
+    }
+
+    const returneds = await Promise.all(promises)
+
+    for (const returned of returneds) {
+      if (returned == null)
         continue
-      }
 
       if (returned.isNone())
         continue
 
       return returned
     }
-
-    const returneds = await Promise.all(promises)
-
-    for (const returned of returneds)
-      if (returned.isSome())
-        return returned
 
     return new None()
   }
