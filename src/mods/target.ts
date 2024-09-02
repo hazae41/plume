@@ -2,6 +2,7 @@ import { Disposer } from "@hazae41/disposer";
 import { Future } from "@hazae41/future";
 import { None, Option } from "@hazae41/option";
 import { Awaitable } from "libs/promises/index.js";
+import { Voidable } from "libs/voidable/index.js";
 
 /**
  * Like `Parameters<T>` but fixed
@@ -15,10 +16,10 @@ export type SuperEventMap =
   Record<string, SuperEventDescriptor>
 
 export type SuperEventListener<T extends SuperEventDescriptor> =
-  (...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>> | void>
+  (...params: Parameters2<T>) => Awaitable<Voidable<Option<ReturnType<T>>>>
 
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
-  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Option<ReturnType<T>> | void>
+  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Voidable<Option<ReturnType<T>>>>
 
 interface InternalSuperEventListenerOptions extends AddEventListenerOptions {
   off: () => void
@@ -101,7 +102,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
     if (!listeners)
       return new None()
 
-    const promises = new Array<Promise<Option<ReturnType<M[K]>> | void>>()
+    const promises = new Array<Promise<Voidable<Option<ReturnType<M[K]>>>>>()
 
     for (const [listener, options] of listeners) {
       if (options.passive)
