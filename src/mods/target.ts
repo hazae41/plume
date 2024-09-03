@@ -1,14 +1,10 @@
 import { Disposer } from "@hazae41/disposer";
 import { Future } from "@hazae41/future";
 import { None, Option, Some } from "@hazae41/option";
+import { WeakParameters } from "libs/parameters/index.js";
 import { Awaitable } from "libs/promises/index.js";
 import { Voidable } from "libs/voidable/index.js";
 import { Cancel } from "./cancel.js";
-
-/**
- * Like `Parameters<T>` but fixed
- */
-type Parameters2<T extends (...args: any) => any> = (T extends (...args: infer P) => any ? [P] : never)[0]
 
 export type SuperEventDescriptor =
   (...args: any) => any
@@ -17,16 +13,14 @@ export type SuperEventMap =
   Record<string, SuperEventDescriptor>
 
 export type SuperEventListener<T extends SuperEventDescriptor> =
-  (...params: Parameters2<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
+  (...params: WeakParameters<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
 
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
-  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
-
-interface DisposableAddEventListenerOptions extends AddEventListenerOptions, Disposable { }
+  (future: Future<R>, ...params: WeakParameters<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
 
 export class SuperEventTarget<M extends SuperEventMap> {
 
-  readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, DisposableAddEventListenerOptions>>()
+  readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, AddEventListenerOptions & Disposable>>()
 
   get listeners() {
     return this.#listeners
@@ -43,7 +37,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
     let listeners = this.#listeners.get(type)
 
     if (listeners === undefined) {
-      listeners = new Map<SuperEventListener<any>, DisposableAddEventListenerOptions>()
+      listeners = new Map<SuperEventListener<any>, AddEventListenerOptions & Disposable>()
       this.#listeners.set(type, listeners)
     }
 
@@ -94,8 +88,8 @@ export class SuperEventTarget<M extends SuperEventMap> {
    * @param params The object to emit
    * @returns `Some` if the event 
    */
-  async emit<K extends keyof M>(type: K, ...params: Parameters2<M[K]>): Promise<Option<ReturnType<M[K]>>> {
-    const listeners = this.#listeners.get(type) as Map<SuperEventListener<M[K]>, DisposableAddEventListenerOptions> | undefined
+  async emit<K extends keyof M>(type: K, ...params: WeakParameters<M[K]>): Promise<Option<ReturnType<M[K]>>> {
+    const listeners = this.#listeners.get(type) as Map<SuperEventListener<M[K]>, AddEventListenerOptions & Disposable> | undefined
 
     if (!listeners)
       return new None()
@@ -150,7 +144,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
   wait<K extends keyof M, R>(type: K, callback: SuperEventWaiter<M[K], R>) {
     const future = new Future<R>()
 
-    const dispose = this.on(type, async (...params: Parameters2<M[K]>) => {
+    const dispose = this.on(type, async (...params: WeakParameters<M[K]>) => {
       return await callback(future, ...params)
     }, { passive: true })
 
