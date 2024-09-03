@@ -104,10 +104,10 @@ export class SuperEventTarget<M extends SuperEventMap> {
 
       const returned = await listener(...params)
 
-      if (returned == null)
-        continue
+      if (returned instanceof Cancel)
+        return new Some(returned.get())
 
-      return new Some(returned.get())
+      continue
     }
 
     for (const [listener, options] of listeners) {
@@ -125,14 +125,20 @@ export class SuperEventTarget<M extends SuperEventMap> {
 
     const returneds = await Promise.all(promises)
 
-    for (const returned of returneds) {
-      if (returned == null)
-        continue
-
-      return new Some(returned.get())
-    }
+    for (const returned of returneds)
+      if (returned instanceof Cancel)
+        return new Some(returned.get())
 
     return new None()
+  }
+
+  async reemit<K extends keyof M>(type: K, ...params: WeakParameters<M[K]>): Promise<Voidable<Cancel<ReturnType<M[K]>>>> {
+    const returned = await this.emit(type, ...params)
+
+    if (returned.isNone())
+      return
+
+    return new Cancel(returned.get())
   }
 
   /**
