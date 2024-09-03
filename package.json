@@ -22,7 +22,7 @@
     "prepare": "npm run build"
   },
   "peerDependencies": {
-    "@hazae41/option": "^1.1"
+    "@hazae41/option": "^1.1.4"
   },
   "dependencies": {
     "@hazae41/disposer": "^2.0.20",
@@ -34,7 +34,7 @@
     "@hazae41/rimraf": "^1.0.1",
     "@hazae41/symbol-dispose-polyfill": "^1.0.2",
     "@rollup/plugin-typescript": "^11.1.6",
-    "@types/node": "^22.5.1",
+    "@types/node": "^22.5.2",
     "rollup": "^4.21.2",
     "rollup-plugin-dts": "^6.1.1",
     "rollup-plugin-node-externals": "^7.1.3",
