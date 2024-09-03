@@ -1,9 +1,9 @@
 import "@hazae41/symbol-dispose-polyfill";
 
 import { Future } from "@hazae41/future";
-import { None, Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
 import { relative, resolve } from "path";
+import { Cancel } from "./cancel.js";
 import { SuperEventTarget } from "./target.js";
 import { waitWithCloseAndErrorOrThrow } from "./waiters.js";
 
@@ -24,20 +24,22 @@ test("AsyncEventTarget", async ({ test, wait }) => {
     console.log("on first", order)
 
     if (order !== "first")
-      return new None()
+      return
 
     stack.push(order)
-    return new Some(123)
+
+    return new Cancel(123)
   }, { passive: true })
 
   target.on("test", async (order) => {
     console.log("on second", order)
 
     if (order !== "second")
-      return new None()
+      return
 
     stack.push(order)
-    return new Some(456)
+
+    return new Cancel(456)
   }, { passive: true })
 
   test("wait", async () => {
@@ -45,7 +47,6 @@ test("AsyncEventTarget", async ({ test, wait }) => {
 
     const first = await waitWithCloseAndErrorOrThrow(target, "test", (future: Future<string>, order) => {
       future.resolve(order)
-      return new None()
     }, signal)
 
     console.log("wait first", first)
@@ -54,7 +55,6 @@ test("AsyncEventTarget", async ({ test, wait }) => {
 
     const second = await waitWithCloseAndErrorOrThrow(target, "test", (future: Future<string>, order) => {
       future.resolve(order)
-      return new None()
     }, signal2)
 
     console.log("wait second", second)
