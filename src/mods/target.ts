@@ -22,13 +22,11 @@ export type SuperEventListener<T extends SuperEventDescriptor> =
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
   (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
 
-interface InternalSuperEventListenerOptions extends AddEventListenerOptions {
-  off: () => void
-}
+interface DisposableAddEventListenerOptions extends AddEventListenerOptions, Disposable { }
 
 export class SuperEventTarget<M extends SuperEventMap> {
 
-  readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, InternalSuperEventListenerOptions>>()
+  readonly #listeners = new Map<keyof M, Map<SuperEventListener<any>, DisposableAddEventListenerOptions>>()
 
   get listeners() {
     return this.#listeners
@@ -45,15 +43,16 @@ export class SuperEventTarget<M extends SuperEventMap> {
     let listeners = this.#listeners.get(type)
 
     if (listeners === undefined) {
-      listeners = new Map<SuperEventListener<any>, InternalSuperEventListenerOptions>()
+      listeners = new Map<SuperEventListener<any>, DisposableAddEventListenerOptions>()
       this.#listeners.set(type, listeners)
     }
 
     const off = () => this.off(type, listener)
 
-    const internalOptions: InternalSuperEventListenerOptions = { ...options, off }
-    internalOptions.signal?.addEventListener("abort", off, { passive: true })
-    listeners.set(listener, internalOptions)
+    options.signal?.addEventListener("abort", off, { passive: true })
+    const dispose = () => options.signal?.removeEventListener("abort", off)
+
+    listeners.set(listener, { ...options, [Symbol.dispose]: () => dispose() })
 
     return off
   }
@@ -71,12 +70,10 @@ export class SuperEventTarget<M extends SuperEventMap> {
     if (!listeners)
       return
 
-    const options = listeners.get(listener)
+    using options = listeners.get(listener)
 
     if (!options)
       return
-
-    options.signal?.removeEventListener("abort", options.off)
 
     listeners.delete(listener)
 
@@ -98,7 +95,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
    * @returns `Some` if the event 
    */
   async emit<K extends keyof M>(type: K, ...params: Parameters2<M[K]>): Promise<Option<ReturnType<M[K]>>> {
-    const listeners = this.#listeners.get(type) as Map<SuperEventListener<M[K]>, InternalSuperEventListenerOptions> | undefined
+    const listeners = this.#listeners.get(type) as Map<SuperEventListener<M[K]>, DisposableAddEventListenerOptions> | undefined
 
     if (!listeners)
       return new None()
