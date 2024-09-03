@@ -1,8 +1,9 @@
 import { Disposer } from "@hazae41/disposer";
 import { Future } from "@hazae41/future";
-import { None, Option } from "@hazae41/option";
+import { None, Option, Some } from "@hazae41/option";
 import { Awaitable } from "libs/promises/index.js";
 import { Voidable } from "libs/voidable/index.js";
+import { Cancel } from "./cancel.js";
 
 /**
  * Like `Parameters<T>` but fixed
@@ -16,10 +17,10 @@ export type SuperEventMap =
   Record<string, SuperEventDescriptor>
 
 export type SuperEventListener<T extends SuperEventDescriptor> =
-  (...params: Parameters2<T>) => Awaitable<Voidable<Option<ReturnType<T>>>>
+  (...params: Parameters2<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
 
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
-  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Voidable<Option<ReturnType<T>>>>
+  (future: Future<R>, ...params: Parameters2<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
 
 interface InternalSuperEventListenerOptions extends AddEventListenerOptions {
   off: () => void
@@ -102,7 +103,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
     if (!listeners)
       return new None()
 
-    const promises = new Array<Promise<Voidable<Option<ReturnType<M[K]>>>>>()
+    const promises = new Array<Promise<Voidable<Cancel<ReturnType<M[K]>>>>>()
 
     for (const [listener, options] of listeners) {
       if (options.passive)
@@ -115,10 +116,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
       if (returned == null)
         continue
 
-      if (returned.isNone())
-        continue
-
-      return returned
+      return new Some(returned.get())
     }
 
     for (const [listener, options] of listeners) {
@@ -140,10 +138,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
       if (returned == null)
         continue
 
-      if (returned.isNone())
-        continue
-
-      return returned
+      return new Some(returned.get())
     }
 
     return new None()
