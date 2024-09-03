@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@hazae41/plume",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Typed async events with sequenced and parallel dispatching",
   "homepage": "https://github.com/hazae41/plume",
   "repository": "github:hazae41/plume",
