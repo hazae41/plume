@@ -4,7 +4,6 @@ import { None, Option, Some } from "@hazae41/option";
 import { WeakParameters } from "libs/parameters/index.js";
 import { Awaitable } from "libs/promises/index.js";
 import { Voidable } from "libs/voidable/index.js";
-import { Cancel } from "./cancel.js";
 
 export type SuperEventDescriptor =
   (...args: any) => any
@@ -13,10 +12,10 @@ export type SuperEventMap =
   Record<string, SuperEventDescriptor>
 
 export type SuperEventListener<T extends SuperEventDescriptor> =
-  (...params: WeakParameters<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
+  (...params: WeakParameters<T>) => Awaitable<Voidable<Option<ReturnType<T>>>>
 
 export type SuperEventWaiter<T extends SuperEventDescriptor, R> =
-  (future: Future<R>, ...params: WeakParameters<T>) => Awaitable<Voidable<Cancel<ReturnType<T>>>>
+  (future: Future<R>, ...params: WeakParameters<T>) => Awaitable<Voidable<Option<ReturnType<T>>>>
 
 export class SuperEventTarget<M extends SuperEventMap> {
 
@@ -94,7 +93,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
     if (!listeners)
       return new None()
 
-    const promises = new Array<Promise<Voidable<Cancel<ReturnType<M[K]>>>>>()
+    const promises = new Array<Promise<Voidable<Option<ReturnType<M[K]>>>>>()
 
     for (const [listener, options] of listeners) {
       if (options.passive)
@@ -104,10 +103,12 @@ export class SuperEventTarget<M extends SuperEventMap> {
 
       const returned = await listener(...params)
 
-      if (returned instanceof Cancel)
-        return new Some(returned.get())
+      if (returned == null)
+        continue
+      if (returned.isNone())
+        continue
 
-      continue
+      return new Some(returned.get())
     }
 
     for (const [listener, options] of listeners) {
@@ -125,20 +126,16 @@ export class SuperEventTarget<M extends SuperEventMap> {
 
     const returneds = await Promise.all(promises)
 
-    for (const returned of returneds)
-      if (returned instanceof Cancel)
-        return new Some(returned.get())
+    for (const returned of returneds) {
+      if (returned == null)
+        continue
+      if (returned.isNone())
+        continue
+
+      return new Some(returned.get())
+    }
 
     return new None()
-  }
-
-  async reemit<K extends keyof M>(type: K, ...params: WeakParameters<M[K]>): Promise<Voidable<Cancel<ReturnType<M[K]>>>> {
-    const returned = await this.emit(type, ...params)
-
-    if (returned.isNone())
-      return
-
-    return new Cancel(returned.get())
   }
 
   /**

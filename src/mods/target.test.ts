@@ -1,9 +1,9 @@
 import "@hazae41/symbol-dispose-polyfill";
 
 import { Future } from "@hazae41/future";
+import { Some } from "@hazae41/option";
 import { assert, test } from "@hazae41/phobos";
 import { relative, resolve } from "path";
-import { Cancel } from "./cancel.js";
 import { SuperEventTarget } from "./target.js";
 import { waitWithCloseAndErrorOrThrow } from "./waiters.js";
 
@@ -28,7 +28,7 @@ test("AsyncEventTarget", async ({ test, wait }) => {
 
     stack.push(order)
 
-    return new Cancel(123)
+    return new Some(123)
   }, { passive: true })
 
   target.on("test", async (order) => {
@@ -39,7 +39,7 @@ test("AsyncEventTarget", async ({ test, wait }) => {
 
     stack.push(order)
 
-    return new Cancel(456)
+    return new Some(456)
   }, { passive: true })
 
   test("wait", async () => {
