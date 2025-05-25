@@ -1,4 +1,4 @@
-import { Disposer } from "@hazae41/disposer";
+import { Pin } from "@hazae41/box";
 import { Future } from "@hazae41/future";
 import { None, Option, Some } from "@hazae41/option";
 import { WeakParameters } from "libs/parameters/index.js";
@@ -151,7 +151,7 @@ export class SuperEventTarget<M extends SuperEventMap> {
       return await callback(future, ...params)
     }, { passive: true })
 
-    return new Disposer(future.promise, dispose)
+    return Pin.with(future.promise, dispose)
   }
 
 }
