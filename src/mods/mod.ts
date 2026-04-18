@@ -33,6 +33,20 @@ export class ExtendableEvent extends Event {
 
 }
 
+export class DataExtendableEvent<D> extends ExtendableEvent {
+
+  readonly data: D
+
+  constructor(type: string, init: DataEventInit<D>) {
+    super(type, init)
+
+    this.data = init.data
+
+    return
+  }
+
+}
+
 export class RespondableEvent<R> extends ExtendableEvent {
 
   #response?: Promise<R>
