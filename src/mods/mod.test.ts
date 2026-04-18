@@ -44,8 +44,8 @@ export class MyTarget extends EventTarget {
 const target = new MyTarget()
 
 target.addEventListener("request", event => {
-  event.waitUntil(event.extension.then(async () => {
-    console.log("Waiting 1 second...")
+  event.waitUntil(Promise.try(async () => {
+    console.log("Waiting for 1 second...")
 
     await new Promise(resolve => setTimeout(resolve, 1000))
 
@@ -55,7 +55,7 @@ target.addEventListener("request", event => {
 
 target.addEventListener("request", event => {
   event.waitUntil(event.extension.then(async () => {
-    console.log("Waiting 1 second again...")
+    console.log("Waiting for 1 second again...")
 
     await new Promise(resolve => setTimeout(resolve, 1000))
 
