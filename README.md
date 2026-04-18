@@ -62,6 +62,8 @@ export class MyTarget extends EventTarget {
 }
 ```
 
+Plug some listeners
+
 ```tsx
 const target = new MyTarget()
 
