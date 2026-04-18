@@ -13,7 +13,7 @@ npm i @hazae41/plume
 ### Current features
 - 100% TypeScript and ESM
 - No external dependency
-- Idiomatic patterns
+- Web-like patterns
 
 ## Usage
 
@@ -51,12 +51,12 @@ export class MyTarget extends EventTarget {
     throw new Error("Unhandled")
   }
 
-  addEventListener<K extends keyof MyTargetEventMap>(type: K, listener: (this: WebSocket, ev: MyTargetEventMap[K]) => void, options?: boolean | AddEventListenerOptions): void
+  addEventListener<K extends keyof MyTargetEventMap>(type: K, listener: (e: MyTargetEventMap[K]) => void, options?: boolean | AddEventListenerOptions): void
 
   addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void
 
   addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void {
-    return super.addEventListener(type, callback as EventListenerOrEventListenerObject, options)
+    return super.addEventListener(type, callback, options)
   }
 
 }
