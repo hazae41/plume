@@ -1,29 +1,7 @@
-# Plume
-
-Typed async events with sequenced and parallel dispatching
-
-```bash
-npm i @hazae41/plume
-```
-
-[**NPM 📦**](https://www.npmjs.com/package/@hazae41/plume)
-
-## Features
-
-### Current features
-- 100% TypeScript and ESM
-- No external dependency
-- Idiomatic patterns
-
-## Usage
-
-Create some event target with its own events
-
-```tsx
-import { DataRespondableEvent } from "@hazae41/plume" 
+import { DataRespondableEvent } from "@/mod.ts";
 
 export interface MyTargetEventMap {
-  request: DataRespondableEvent<Request, Response>
+  request: DataRespondableEvent<Request, Response>,
 
   close: CloseEvent
 
@@ -60,13 +38,27 @@ export class MyTarget extends EventTarget {
   }
 
 }
-```
 
-```tsx
 const target = new MyTarget()
 
 target.addEventListener("request", event => {
-  event.waitUntil(new Promise(ok => setTimeout(ok, 1000)))
+  event.waitUntil(event.extension.then(async () => {
+    console.log("Waiting 1 second...")
+
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    console.log("Done waiting")
+  }))
+})
+
+target.addEventListener("request", event => {
+  event.waitUntil(event.extension.then(async () => {
+    console.log("Waiting 1 second again...")
+
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    console.log("Done waiting again")
+  }))
 })
 
 target.addEventListener("request", event => {
@@ -74,8 +66,6 @@ target.addEventListener("request", event => {
   event.respondWith(event.extension.then(() => new Response("Hello, world!")))
 })
 
-const request = new Request("https://example.com/")
-const response = await target.request(request)
+const response = await target.request(new Request("https://example.com/"))
 
 console.log(await response.text())
-```
