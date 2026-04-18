@@ -45,6 +45,8 @@ export class MyTarget extends EventTarget {
 
     this.dispatchEvent(event)
 
+    await event.extension
+
     if (event.response != null)
       return await event.response
 
@@ -73,7 +75,7 @@ target.addEventListener("request", event => {
 
 target.addEventListener("request", event => {
   event.stopImmediatePropagation()
-  event.respondWith(event.extension.then(() => new Response("Hello, world!")))
+  event.respondWith(new Response("Hello, world!"))
 })
 
 const request = new Request("https://example.com/")
