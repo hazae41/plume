@@ -1,21 +1,21 @@
 import { DataRespondableEvent } from "@/mod.ts";
 
 export interface MyTargetEventMap {
-  request: DataRespondableEvent<Request, Response>,
-
   close: CloseEvent
 
   error: ErrorEvent
+
+  request: DataRespondableEvent<Request, Response>,
 }
 
 export class MyTarget extends EventTarget {
 
-  error(error?: unknown) {
-    this.dispatchEvent(new ErrorEvent("error", { error }))
-  }
-
   close(reason?: string) {
     this.dispatchEvent(new CloseEvent("close", { reason }))
+  }
+
+  error(error?: unknown) {
+    this.dispatchEvent(new ErrorEvent("error", { error }))
   }
 
   async request(data: Request): Promise<Response> {
