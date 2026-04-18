@@ -17,7 +17,14 @@ npm i @hazae41/plume
 
 ## Usage
 
-Create some event target with its own events
+Plume provides a few events:
+- DataEvent, an Event with some data
+- ExtendableEvent, an Event with waitUntil
+- RespondableEvent, an ExtendableEvent with respondWith
+- DataExtendableEvent, an ExtendableEvent and DataEvent
+- DataRespondableEvent, a RespondableEvent and DataEvent
+
+You can create some event target with its own events
 
 ```tsx
 import { DataRespondableEvent } from "@hazae41/plume" 
@@ -45,36 +52,62 @@ export class MyTarget extends EventTarget {
 
     this.dispatchEvent(event)
 
+    /**
+     * Wait for all extensions
+     */
     await event.extension
 
+    /**
+     * Wait for the response if any
+     */
     if (event.response != null)
       return await event.response
 
+    /**
+     * Throw if no response
+     */
     throw new Error("Unhandled")
   }
 
-  addEventListener<K extends keyof MyTargetEventMap>(type: K, listener: (e: MyTargetEventMap[K]) => void, options?: boolean | AddEventListenerOptions): void
+  addEventListener<K extends keyof MyTargetEventMap>(type: K, listener: (e: MyTargetEventMap[K]) => void, options?: AddEventListenerOptions): void
 
-  addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void
+  addEventListener(type: string, callback: (e: Event) => void, options?: AddEventListenerOptions): void
 
-  addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void {
+  addEventListener(type: string, callback: (e: Event) => void, options?: AddEventListenerOptions): void {
     return super.addEventListener(type, callback, options)
   }
 
 }
 ```
 
-Plug some listeners
+And then plug some listeners to it
 
 ```tsx
 const target = new MyTarget()
 
 target.addEventListener("request", event => {
+  /**
+   * Wait for 1 second
+   */
   event.waitUntil(new Promise(ok => setTimeout(ok, 1000)))
 })
 
 target.addEventListener("request", event => {
+  /**
+   * Wait for previous extension (1 second) and then wait for 1 second
+   */
+  event.waitUntil(event.extension.then(() => new Promise(ok => setTimeout(ok, 1000))))
+})
+
+target.addEventListener("request", event => {
+  /**
+   * Do not call next listeners
+   */
   event.stopImmediatePropagation()
+
+  /**
+   * Respond synchronously
+   */
   event.respondWith(new Response("Hello, world!"))
 })
 

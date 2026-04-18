@@ -31,11 +31,11 @@ export class MyTarget extends EventTarget {
     throw new Error("Unhandled")
   }
 
-  addEventListener<K extends keyof MyTargetEventMap>(type: K, listener: (e: MyTargetEventMap[K]) => void, options?: boolean | AddEventListenerOptions): void
+  addEventListener<K extends keyof MyTargetEventMap>(type: K, listener: (e: MyTargetEventMap[K]) => void, options?: AddEventListenerOptions): void
 
-  addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void
+  addEventListener(type: string, callback: (e: Event) => void, options?: AddEventListenerOptions): void
 
-  addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void {
+  addEventListener(type: string, callback: (e: Event) => void, options?: AddEventListenerOptions): void {
     return super.addEventListener(type, callback, options)
   }
 
