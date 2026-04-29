@@ -64,7 +64,6 @@ target.addEventListener("request", event => {
 })
 
 target.addEventListener("request", event => {
-  event.stopImmediatePropagation()
   event.respondWith(new Response("Hello, world!"))
 })
 
