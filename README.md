@@ -94,23 +94,9 @@ target.addEventListener("request", event => {
 
 target.addEventListener("request", event => {
   /**
-   * Wait for previous extension (1 second) and then wait for 1 second
-   */
-  event.waitUntil(event.extension.then(() => new Promise(ok => setTimeout(ok, 1000))))
-})
-
-target.addEventListener("request", event => {
-  /**
    * Respond synchronously
    */
   event.respondWith(new Response("Hello, world!"))
-})
-
-target.addEventListener("request", event => {
-  /**
-   * Wait for previous extensions (1 second + 1 second) and then respond
-   */
-  event.respondWith(event.extension.then(() => new Response("Hello, world!")))
 })
 
 const request = new Request("https://example.com/")
