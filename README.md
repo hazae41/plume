@@ -101,11 +101,6 @@ target.addEventListener("request", event => {
 
 target.addEventListener("request", event => {
   /**
-   * Do not call next listeners
-   */
-  event.stopImmediatePropagation()
-
-  /**
    * Respond synchronously
    */
   event.respondWith(new Response("Hello, world!"))
