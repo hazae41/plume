@@ -106,6 +106,13 @@ target.addEventListener("request", event => {
   event.respondWith(new Response("Hello, world!"))
 })
 
+target.addEventListener("request", event => {
+  /**
+   * Wait for previous extensions (1 second + 1 second) and then respond
+   */
+  event.respondWith(event.extension.then(() => new Response("Hello, world!")))
+})
+
 const request = new Request("https://example.com/")
 const response = await target.request(request)
 
