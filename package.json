@@ -2,7 +2,7 @@
   "type": "module",
   "name": "@hazae41/plume",
   "version": "4.0.0",
-  "description": "Typed async events with sequenced and parallel dispatching",
+  "description": "Respondable and extendable events for the web",
   "homepage": "https://github.com/hazae41/plume",
   "repository": "github:hazae41/plume",
   "author": "hazae41",
