@@ -57,7 +57,7 @@ export class RespondableEvent<R> extends ExtendableEvent {
 
   respondWith(response: Awaitable<R>) {
     this.stopImmediatePropagation()
-    this.#response = Promise.resolve(response)
+    this.#response = this.extension.then(() => response)
   }
 
 }
