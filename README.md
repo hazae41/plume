@@ -1,6 +1,6 @@
 # Plume
 
-Typed async events with sequenced and parallel dispatching
+Respondable and extendable events for the web
 
 ```bash
 npm i @hazae41/plume
